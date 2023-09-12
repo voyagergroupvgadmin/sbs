@@ -1,0 +1,1896 @@
+<!DOCTYPE html>
+<!--Phase I
+	Provide dropdown of non-finalised POs
+	Choose PO
+	Allow user to select all/deselect all add to 'selected' counts total
+	Allow sort of table
+	Give Finalise & Send button to complete the PO - send to EoP - only when at least 1 is 'selected'
+	Once Finalised mark everything for a PO as fianlised and only those that hav been included as processed
+	Mark date and hardcode user to Trish until we can find a way to do this properly
+	Phase II
+
+	1. If the PO doesn't exist in EoP, don't allow Finalise
+	2. If any of the GTINs have counts already in EoP Counts, hide the select checkbox and put up a message to request a recount
+	3. If a recount has been requested but not done, mark the row in red and put up a warning message
+	4. Any recount requests will be set to 0, display those but hide the select checkbox
+	5. Upon Finalise:
+		If any don't have counts included, and don't exist in EoP Counts, pop up a message to confirm they'll be set to 0
+	
+
+
+
+-->	
+
+
+<html>
+<head>
+	<title>QBManageInbound</title>
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.12/css/all.css"
+		integrity="sha384-G0fIWCsCzJIMAVNQPfjH08cyYaUtMwjJwqiRKxxE/rx96Uroj1BtIQ6MLJuheaO9" crossorigin="anonymous" />
+	<link rel="icon" type="image/x-icon" href="https://saymak.voyagergroup.com.au/images/Admin/favicon.ico" />
+
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Ripple.js/1.2.1/ripple.min.css" />
+	<link rel="stylesheet" href="https://saymak.voyagergroup.com.au/css/bootstrap-4.2.1.min.css">
+	<link rel="stylesheet" href="https://saymak.voyagergroup.com.au/css/bootstrap-3.4.1.min.css">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.10.2/umd/popper.min.js"></script>
+ 	<script src="https://saymak.voyagergroup.com.au/js/jquery-3.6.4.min.js"></script>
+	<script src="https://saymak.voyagergroup.com.au/js/bootstrap-3.4.1.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+
+	<meta charset="UTF-8" />
+
+
+	<style>
+		html
+		{
+			margin: 0 auto;
+		}
+
+		body {
+			font-family: Arial, sans-serif;
+			background-color: #f5f5f5;
+			/* display: flex; 
+			min-height: 100vh;
+          	flex-direction: column;  */
+			align-items: center;
+			justify-content: center;
+			padding: 1rem;
+			font-size: 1.2rem;
+		}
+
+		.dropdown-menu {
+			min-width: inherit;
+		}
+
+		h1 {
+			margin: 2rem 0 1rem 0;
+			text-align: center;
+		}
+
+		input[type="text"] {
+			width: 100%;
+			padding: 0.8rem;
+			margin-bottom: 1rem;
+			border: 1px solid #ccc;
+			border-radius: 5px;
+			font-size: 1.2rem;
+		}
+
+		button {
+			padding: 0.8rem 1.5rem;
+			font-size: 1.2rem;
+			color: white;
+			border: none;
+			border-radius: 5px;
+			cursor: pointer;
+		}
+
+		button:hover {
+			background-color: #154c9e;
+		}
+
+		#clearNotes {
+			background-color: #dc3545;
+		}
+
+		#clearNotes:hover {
+			background-color: #c82333;
+		}
+
+
+		#error {
+			color: red;
+			display: none;
+			margin-bottom: 1rem;
+		}
+
+		.lineTable {
+			/* width: 100%; */
+			border-collapse: collapse;
+			border-radius: 5px;
+			overflow: hidden;
+/* 			margin-left: auto;
+			margin-right: auto;*/
+		} 
+
+		.lineTable th {
+			cursor: pointer;
+		}
+
+		.lineTable th, td {
+			text-align: left;
+			padding: 16px;
+		}
+
+		.lineTable tr:nth-child(even) {
+			background-color: #f2f2f2
+		}
+
+
+
+		.topTable {
+		/*	width: "1000px"; */
+			border: 1px solid #ccc;
+		}
+
+		.poDetails  th,
+		.poDetails  td {
+			border: 1px solid #ccc;
+			padding: 0.5rem;
+			text-align: left;
+		}
+
+		.poDetails th {
+			background-color: #f2f2f2;
+		}
+
+		.poDetails tbody tr:nth-child(odd) {
+			background-color: #f2f2f2;
+		}
+
+		.poDetails tbody tr:nth-child(even) {
+			background-color: #ffffff;
+		}
+
+		#summaryList .poDetails td:nth-child(2) {
+			font-weight: bold;
+		}
+
+
+
+
+		.lineTable  th,
+		.lineTable  td {
+			border: 1px solid #ccc;
+			padding: 0.5rem;
+			text-align: center;
+		}
+
+		.lineTable th {
+			background-color: #f2f2f2;
+		}
+
+		.lineTable tbody tr:nth-child(odd) {
+			background-color: #f2f2f2;
+		}
+
+		.lineTable tbody tr:nth-child(even) {
+			background-color: #ffffff;
+		}
+
+		#summaryList .lineTable td:nth-child(2) {
+			font-weight: bold;
+		}
+
+		#dataTableContainer {
+			display: none;
+		}
+
+		.close {
+			color: #aaa;
+			float: right;
+			font-size: 28px;
+			font-weight: bold;
+		}
+
+		.close:hover,
+		.close:focus {
+			color: black;
+			text-decoration: none;
+			cursor: pointer;
+		}
+
+/* 		#spinner {
+			visibility: hidden;
+			z-index: 99999;
+			top: 50%;
+			width: 40rem;
+			height: 40rem;
+			display: block;
+			position: fixed;
+			left: 50%;
+			transform: translate(-50%, -50%);
+		} */
+
+		.spinContainer {
+			visibility: hidden;
+			text-align: center;
+			position: fixed;
+			top: 0; 
+			left: 0;
+			right: 0;
+			bottom: 0;
+			z-index: 9999;
+		}
+
+		.jumbotron {
+			background-color: rgba(255,255,255, 0.8); /* Semi transparent background. You can adjust this. */
+			width: 100%;
+			height: 100%;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+		}
+
+		.spinner-border {
+			width: 4rem; 
+			height: 4rem;
+			border-width: 0.3em; 
+			margin-top: 20px; 
+		}
+
+		
+		@keyframes fadeIn {
+		0%   { opacity: 0; }
+		100% { opacity: 1; }
+		}
+
+		body.busy #spinner {
+			visibility: visible !important;
+		/*	animation: fadeIn 0.3s; */
+		}
+
+		#datasetVersionDisplay {font-weight: bold; font-size: x-small;}
+
+	</style>
+</head>
+
+
+<body>
+	<div class = "spinContainer" id="spinner">
+        <div class = "jumbotron" >
+          <h1>Processing your request</h1> 
+		  <div class="text-center">
+				<div class="spinner-border text-info" role="status">
+					<span class="sr-only">Loading... </span>
+				</div>
+			</div>
+        </div>
+    </div>
+
+<!-- 	<div class="text-center">
+		<div class="spinner-grow text-primary" role="status" id="spinner" >
+			<span class="sr-only">Loading... </span>
+		</div>
+	</div> -->
+	<div id="datasetVersion">SBSAdmin Version: 3-0912&nbsp;&nbsp;&nbsp;</div>
+
+	<form id="poForm">
+		<div><img src="https://saymak.voyagergroup.com.au/images/Admin/SBS-Circle-Turq.png" width="32px"/><span style="font-size: x-small;">&nbsp;</span> <span style="font-weight:bold;font-size:14pt">Purchase order number: 
+			<select id="dlPurchaseOrders">
+			<option>Choose a number</option>
+		</select></span></div>
+	</form>
+	<br>
+	<div id="infoMessage" style="font-weight:bold;font-size: small;"></div>
+	<br>
+	<div id="gtinDisplaySection"  style="display: none">
+		<div class="poDetails" id="poDetails">
+			<table style="border: 1px solid black;">
+				<tr><td width="200px">
+					Purchase Order Number:
+				</td><td align="left">
+					<span id="displayPONumber"></span>
+				</td></tr>
+				<tr><td width="200px">
+					Company:
+				</td><td>
+					<span id="displayCompany"></span>
+				</td></tr>
+				<tr><td width="200px">
+					Warehouse:
+				</td><td>
+					<span id="displayWarehouse"></span>
+				</td></tr>
+				<tr><td width="200px">
+					User(s):
+				</td><td>
+					<span id="displayUsers"></span>
+				</td></tr>
+				<tr><td width="200px">
+					Number of SELECTED GTINs:
+				</td><td>
+					<span id="displayNoGTINs"></span>
+				</td></tr>
+				<tr><td width="200px">
+					Total SELECTED Count:
+				</td><td>
+					<span id="displayCount"></span>
+				</td></tr>
+			</table>
+		</div>
+
+		<div class="lineTableContainer" id="lineTableContainer">
+			<br>
+			<div>	
+				<button class="btn btn-primary rounded-pill" id="selectAll">Select All</button>
+				<button class="btn btn-primary rounded-pill" id="deselectAll">Deselect All</button>
+				<button style="visibility: hidden" class="btn btn-success rounded-pill" id="finalisePO">Finalise and Send</button>
+				<button style="visibility: hidden" class="btn btn-warning rounded-pill" id="discardPO">Discard PO</button>
+			</div>
+			<br><div id="errorMessage" style="font-weight:bold;font-size: small;display:none;" class="alert alert-danger" role="alert"></div>
+			<div id="warningMessage" style="font-weight:bold;font-size: small;display:none;" class="alert alert-warning" role="alert"></div>
+<!-- 			<br><div id="errorMessage" style="font-weight:bold;font-size: small;"></div>
+			<br><div id="warningMessage" style="font-weight:bold;font-size: small;"></div>
+ -->			<br>
+			<table class="lineTable" id="lineTable">
+				<thead>
+					<tr>
+						<th style="display: none;width:40px;">Style</th>
+						<th style="display: none;width:50px;">Colour</th>
+						<th style="display: none">Size</th>
+						<th style="display: none">RecID</th>
+						<th style="width:40px;">Checkbox</th>
+					<!--	<th onclick="sortTable(0)">GTIN</th>
+						<th onclick="sortTable(1)">DESCRIPTION</th> -->
+						<th  style="width:50px;">GTIN</th>
+						<th  style="width:200px;">DESCRIPTION</th>
+						<th style="width:40px;">QTY</th>
+						<th >DETAILS</th>
+					</tr>
+				</thead>
+				<tbody id="gtinTableBody"></tbody>
+			</table>
+		</div>	
+	</div>
+
+	<script type="module">
+
+const configUrl =
+			"https://voyager-group-production-apps.s3.ap-southeast-2.amazonaws.com/voyager-group-barcode-scanning-app/projectsoxconfig.json";
+
+
+		const spinner = document.getElementById("spinner");
+		const dlPurchaseOrders = document.getElementById("dlPurchaseOrders");
+		const displayPONumber = document.getElementById("displayPONumber");
+		const displayCount = document.getElementById("displayCount");
+		const displayNoGTINs = document.getElementById("displayNoGTINs");
+		const displayCompany = document.getElementById("displayCompany");
+		const displayWarehouse = document.getElementById("displayWarehouse");
+		const displayUsers = document.getElementById("displayUsers");
+		const warningMessage = document.getElementById("warningMessage");
+		const errorMessage = document.getElementById("errorMessage");
+		let eopCounts = false;
+		let zeroCounts = false;
+		let notonPOCounts = false;
+		let missingPOLines = false;
+
+
+		let currentPOInEop = new Boolean (false);
+
+
+		const gtinDisplaySection = document.getElementById("gtinDisplaySection");
+		const buttonsSection = document.getElementById("buttonsSection");
+
+		let loggedInUserName = "Warehouse Admin";
+		let loggedInUserID = 0;
+
+		let GTINs = [];
+		let gtinPOList = {};					//list of GTINs on the EoP POLine for this PO
+		let gtinEoPCountsList = {};				//list of GTINs on the EoP Count for this PO
+		let gtinEoPApproved = {};				//list of GTINs on the EoP Count for this PO
+		let	gtinRecountRequested = {};			//list of GTINs on the Inbound Count that are zero for this PO (recounts)
+		let gtinSummariesToFinalise = {};		//list of GTINs to Finalise
+		let gtinZeroSummariesToFinalise = {};	//list of GTINs on PO, not in Final
+		let gtinNotOnPO = {};					//list of GTINs not on PO
+		let gtinUpsertRecords = {};				// EoP Record IDs for upsert
+
+		let distinctGTINs = new Set();
+		let totalQuantity = 0;
+
+/* 		var quickbaseSBSToken = "QB-USER-TOKEN b5xqac_pd7e_0_mi2ziqdn7bv5zbgny79qc2i6v7t";
+		var quickbaseSBSEoP = "btdjcxhn4";
+		var quickbaseSBSInbound = "btik263vu";
+ */
+		var quickbaseRealmHostname = "";
+		var quickbaseSBSToken = "";
+		var quickbaseSBSHead = "";
+		var quickbaseSBSLine = "";
+		var quickbaseSBSInboundHead = "";
+		var quickbaseSBSInboundLine = "";
+		var quickbaseSBSInbound = "";
+		var quickbaseEoPPOLine = "";
+		var quickbaseGTINMaster = "";
+		var quickbaseSBSEoP = "";
+
+		document.addEventListener("DOMContentLoaded", async function () {
+
+			document.querySelector(".lineTable th:nth-child(6)").addEventListener('click', function() {
+				sortTable(5);
+			});
+			document.querySelector(".lineTable th:nth-child(7)").addEventListener('click', function() {
+				sortTable(6);
+			});
+
+			initApp();
+
+			function showWarningMessage(message) {
+				console.log(">>>>>showWarningMessage = " + message);
+				warningMessage.style.display = "block";
+				if (!warningMessage.innerHTML.includes(message)) {
+					console.log(">>>>>showWarningMessage not included so adding");
+					if (warningMessage.innerHTML) {
+						warningMessage.innerHTML += "<br>" + message;
+					} else {
+						warningMessage.innerHTML = message;
+					}
+				}
+				//warningMessage.style.color = "orange";
+			}
+
+
+			function clearWarningMessage(message) {
+				if (message) {
+					warningMessage.innerHTML = warningMessage.innerHTML.replace(message, '');
+
+					if (!warningMessage.innerHTML.trim()) {
+						warningMessage.style.display = "none";
+					}
+				} else {
+					warningMessage.style.display = "none";
+					warningMessage.innerHTML = "";
+				}
+			}
+
+			function clearErrorMessage(message) {
+				errorMessage.style.display = "none";
+				errorMessage.innerHTML = "";
+			}
+
+			function showErrorMessage(message) {
+				errorMessage.style.display = "block";
+				if (!errorMessage.innerHTML.includes(message)) {
+					if (errorMessage.innerHTML) {
+						errorMessage.innerHTML += "<br>" + message;
+					} else {
+						errorMessage.innerHTML = message;
+					}
+				}
+				//errorMessage.style.color = "red";
+			}
+
+			function showInfoMessage(message, isError = false) {
+				infoMessage.textContent = message;
+				infoMessage.style.color = "green";
+			}
+
+			async function fillPurchaseOrders() {
+				clearWarningMessage("");
+				clearErrorMessage("");
+				if (!displayPONumber.textContent) {
+					totalQuantity = 0;
+					distinctGTINs.clear();
+					if (currentPOInEop) {
+						document.getElementById("finalisePO").style.visibility = "visible";
+					};
+					gtinDisplaySection.style.visibility = "hidden";
+				};
+
+				//DEBUG-console.log("CollectPOs");
+				const headers = {
+					"QB-Realm-Hostname": "voyager.quickbase.com",
+					"Authorization": quickbaseSBSToken,
+					"Content-Type": "application/json"
+				};
+
+				const queryBody = {
+					from: quickbaseSBSInbound,
+					select: [6],
+					where: "{17.EX.'false'}",	//select everything not processed
+					sortby: [{ "fieldId": 6, "order": "ASC" }]
+				};
+
+				let uniquePOList = [];
+				uniquePOList.push("Choose a number");
+
+				try {
+					const response = await fetch("https://api.quickbase.com/v1/records/query", {
+						method: "POST",
+						headers: headers,
+						body: JSON.stringify(queryBody)
+					});
+
+					if (response.ok) {
+						//DEBUG-console.log("OK from Fetch");
+						const data = await response.json();
+						//DEBUG-console.log("Received data:", data);
+						const records = data.data; 
+
+						for (const record of records) {
+							//DEBUG-console.log("Looping");
+							const purchaseOrderNumber = record["6"].value; 
+							if (!uniquePOList.includes(purchaseOrderNumber)) {
+								uniquePOList.push(purchaseOrderNumber);
+							}
+						}
+
+						//DEBUG-console.log("Unique Field 6 Values:", uniquePOList);
+						$('#dlPurchaseOrders').empty();
+						$.each(uniquePOList, function(i, p) {
+							$('#dlPurchaseOrders').append($('<option></option>').val(p).html(p));
+						});
+					} else {
+						//DEBUG-console.error("Fetch failed:", response.status, response.statusText);
+						return null;
+					}
+				} catch (error) {
+					//DEBUG-console.error("Fetch error:", error);
+					return null;
+				} finally {
+					//hideSpinner();
+				}
+
+
+
+			};
+
+			async function getPOLines(PONumber) {
+
+				//PONumber = PONumber.toUpperCase();
+
+				//DEBUG-console.log("getPOLines for " + PONumber);
+				//DEBUG-console.log("quickbaseEoPPOLine: " + quickbaseEoPPOLine);
+				const headers = {
+					"QB-Realm-Hostname": "voyager.quickbase.com",
+					"Authorization": quickbaseSBSToken,
+					"Content-Type": "application/json"
+				};
+
+ 				const queryBody = {
+					from: quickbaseEoPPOLine,
+					select: [49, 9, 24, 25, 10, 3],
+					where: "{49.EX.'" + PONumber + "'}"
+				};
+				// 49 = PO Number
+				//  9 = Style
+				// 24 = Colour
+				// 25 = Size
+				// 10 = Quantity
+				//  3 = Record ID
+
+/* 				//DEBUG-console.log('Sending POL request:', {
+					method: "POST",
+					headers: headers,
+					body: JSON.stringify(queryBody)
+				}); */
+
+				try {
+					const response = await fetch("https://api.quickbase.com/v1/records/query", {
+						method: "POST",
+						headers: headers,
+						body: JSON.stringify(queryBody)
+					});
+
+					if (response.ok) {
+						//DEBUG-console.log("OK from getPOLines Fetch");
+						const data = await response.json();
+						//DEBUG-console.log("Received getPOLines data:", data);
+						const records = data.data; 
+
+						if (records.length === 0) {
+							currentPOInEop = false;
+							//showWarningMessage("This PO is not in Eye of Providence - you won't be able to finalise it.", true);
+						} else {
+							currentPOInEop = true;	
+						}
+
+						//DEBUG-console.log("Number of getPOLines records:", records.length); 
+
+						for (const record of records) {
+							//DEBUG-console.log("getPOLines in For");
+							try {
+								//DEBUG-console.log("Doing getPOLines Lines");
+								let assocGTIN = await getGTIN(record["9"].value, record["24"].value,record["25"].value);
+								//DEBUG-console.log("PoL:" + record["9"].value + " - " + record["24"].value + " - " + record["25"].value + " - " + assocGTIN);
+								if (assocGTIN) {
+									//DEBUG-console.log ("assocGTIN" + assocGTIN);
+									if (!gtinPOList.hasOwnProperty(assocGTIN)) {
+										console.log("Adding to gtinPOList:" + record["9"].value + "|" + record["24"].value + "|" + record["25"].value + "|" + record["10"].value + "|" + record["3"].value);	
+										let details = record["9"].value + "|" + record["24"].value + "|" + record["25"].value + "|" + record["10"].value + "|" + record["3"].value;
+										gtinPOList[assocGTIN] = {details};
+										//DEBUG-console.log("gtinPOList: " + JSON.stringify(gtinPOList, null, 2));
+									}
+								} else {
+									//GTIN Not found
+
+								}
+							} catch (e) {
+								success = false;
+								errorMessage = e.message;
+								break; // Exit the loop on the first error
+							}
+
+						}
+
+					} else {
+						//DEBUG-console.error("Fetch failed:", response.status, response.statusText);
+						return null;
+					}
+				} catch (error) {
+					//DEBUG-console.error("Fetch error:", error);
+					return null;
+				} finally {
+					//hideSpinner();
+				}
+			};
+
+			async function getPreviousEoPCounts(PONumber) {
+				let success = true;
+
+				PONumber = PONumber.trim();
+
+				//DEBUG-console.log(">>>>getPreviousEoPCounts - PONumber:" + PONumber);
+
+				let headers = {
+					"QB-Realm-Hostname": "voyager.quickbase.com",
+					"Authorization": quickbaseSBSToken,
+					"Content-Type": "application/json"
+				};
+
+				const currentDate = new Date().toISOString();
+
+				const queryBody = {
+					from: quickbaseSBSEoP,
+					select: [37, 6, 10, 3, 13, 12],			//37=PO, 6=GTIN, 10=Count, 3=RecID, 13=RecountReq, 12=Approved
+					where: "{37.EX.'" + PONumber + "'}",	//select PO
+					sortby: [{ "fieldId": 6, "order": "ASC" }]
+				};
+
+ 				/*DEBUG-console.log('>>>>getPreviousEoPCounts - Sending POL request:', {
+					method: "POST",
+					headers: headers,
+					body: JSON.stringify(queryBody)
+				});*/
+
+
+				try {
+					const response = await fetch("https://api.quickbase.com/v1/records/query", {
+						method: "POST",
+						headers: headers,
+						body: JSON.stringify(queryBody)
+					});
+
+					if (response.ok) {
+						//DEBUG-console.log(">>>>getPreviousEoPCounts - OK from Fetch");
+						const data = await response.json();
+						//DEBUG-console.log(">>>>getPreviousEoPCounts - Received  data:", data);
+						const records = data.data; 
+
+						//DEBUG-console.log(">>>>getPreviousEoPCounts - Number of  records:", records.length); 
+
+						for (const record of records) {
+							//DEBUG-console.log(">>>>getPreviousEoPCounts - Looping");
+							try {
+								//*** ONLY INCLUDE IF THE COUNT > 0  DMB
+								//DEBUG-console.log(">>>>getPreviousEoPCounts - Doing Lines");
+								//DEBUG-console.log("PoL:" + record["37"].value + " - " + record["6"].value + " - " + record["10"].value + " - " + record["13"].value + " - " +  record["12"].value);
+								let countGTIN = record["6"].value;	//gtin
+								let amount = record["10"].value;
+								let recID = record["3"].value;
+								let recountReq = record["13"].value;
+								let gtinApproved = record["12"].value;
+
+
+
+								if (!amount) {
+									amount = 0;
+								}
+								//if (amount) {
+								if (!gtinEoPCountsList.hasOwnProperty(countGTIN)) {
+									//DEBUG-console.log("Added gtinEoPCountsList: " + countGTIN);
+									gtinEoPCountsList[countGTIN] = {amount};
+									//DEBUG-console.log("gtinEoPCountsList: " + JSON.stringify(gtinEoPCountsList, null, 2));
+								}
+								//}
+								if (!gtinUpsertRecords.hasOwnProperty(countGTIN) && amount === 0 && !recountReq) {
+									// Only upsert 0 EoP records
+									// If this is a recount, don't include here
+									//DEBUG-console.log("Added gtinEoPCountsList: " + countGTIN);  dmbup
+									gtinUpsertRecords[countGTIN] = {recID};
+								} 
+								if (gtinApproved) {
+									if (!gtinEoPApproved.hasOwnProperty(countGTIN)) {
+										gtinEoPApproved[countGTIN] = {amount};
+									}
+								}
+
+
+
+							} catch (e) {
+								//DEBUG-console.log("Fetch error:" + e);
+								success = false;
+								//break; // Exit the loop on the first error
+							}
+
+						}
+
+						//DEBUG-console.log(">>>>getPreviousEoPCounts gtinEoPCountsList: ", gtinEoPCountsList);
+
+					} else {
+						//DEBUG-console.error("Fetch failed:", response.status, response.statusText);
+						//return null;
+					}
+				} catch (error) {
+					//DEBUG-console.error("Fetch error:", error);
+					return null;
+				} finally {
+					hideSpinner();
+				}
+
+			}; 
+
+			async function getRecountRequests(PONumber) {
+
+				//DMB
+				let success = true;
+
+				PONumber = PONumber.trim();
+
+				//DEBUG-console.log(">>>>getRecountRequests - PONumber:" + PONumber);
+
+				let headers = {
+					"QB-Realm-Hostname": "voyager.quickbase.com",
+					"Authorization": quickbaseSBSToken,
+					"Content-Type": "application/json"
+				};
+
+				const currentDate = new Date().toISOString();
+
+				const queryBody = {
+					from: quickbaseSBSInbound,
+					select: [6, 11, 15, 23],
+					where: "{6.EX.'" + PONumber + "'} AND {23.EX.'Y'}"
+				};
+
+ 				/*DEBUG-console.log('>>>>getRecountRequests - Sending POL request:', {
+					method: "POST",
+					headers: headers,
+					body: JSON.stringify(queryBody)
+				}); */
+
+
+				try {
+					const response = await fetch("https://api.quickbase.com/v1/records/query", {
+						method: "POST",
+						headers: headers,
+						body: JSON.stringify(queryBody)
+					});
+
+					if (response.ok) {
+						//DEBUG-console.log(">>>>getRecountRequests - OK from Fetch");
+						const data = await response.json();
+						//DEBUG-console.log(">>>>getRecountRequests - Received  data:", data);
+						const records = data.data; 
+
+						//DEBUG-console.log(">>>>getRecountRequests - Number of  records:", records.length); 
+
+						for (const record of records) {
+							//DEBUG-console.log(">>>>getRecountRequests - Looping");
+							//DEBUG-console.log(">>>>getRecountRequests - Doing Lines");
+							let countGTIN = record["11"].value ;
+							//DEBUG-console.log(">>>>getRecountRequests - countGTIN:" + countGTIN);
+
+
+							//This is marked as a recount so it should be a 0 amount
+							//let amount = record["15"].value;
+							//if (!amount || amount == 0) {
+							//This is marked as a recount so it should be a 0 amount
+							//DEBUG-console.log("Added getRecountRequests amount: " + countGTIN);
+							if (!gtinRecountRequested.hasOwnProperty(countGTIN)) {
+								//DEBUG-console.log("Added getRecountRequests: " + countGTIN);
+								gtinRecountRequested[countGTIN] = 0;
+								//DEBUG-console.log("getRecountRequests: " + JSON.stringify(gtinRecountRequested, null, 2));
+							}
+						}
+
+					} else {
+						//DEBUG-console.error("Fetch failed:", response.status, response.statusText);
+						//return null;
+					}
+				} catch (error) {
+					//DEBUG-console.error("Fetch error:", error);
+					return null;
+				} finally {
+					hideSpinner();
+				}
+
+			}; 
+
+
+
+			async function getGTIN(Style, Colour, Size) {
+
+
+				//DEBUG-console.log("getGTIN:" + quickbaseGTINMaster + "   -   " + Style + "-" + Colour + "-" + Size);
+				const headers = {
+					"QB-Realm-Hostname": "voyager.quickbase.com",
+					"Authorization": quickbaseSBSToken,
+					"Content-Type": "application/json"
+				};
+
+				const queryBody = {
+					from: quickbaseGTINMaster,
+					select: [6, 7, 8, 9],
+					where: "{7.EX.'" + Style + "'}AND{9.EX.'" + Colour + "'}AND{8.EX.'" + Size + "'}",	//select style, colour, size
+				};
+
+
+				try {
+					const response = await fetch("https://api.quickbase.com/v1/records/query", {
+						method: "POST",
+						headers: headers,
+						body: JSON.stringify(queryBody)
+					});
+
+					if (response.ok) {
+						//DEBUG-console.log("OK from GTIN Fetch");
+						const data = await response.json();
+						//DEBUG-console.log("Received GTIN data:", data);
+						const records = data.data; 
+
+						for (const record of records) {
+							//DEBUG-console.log("Looping in GTIN");
+							let gtin = Math.floor(record["6"].value);
+							//DEBUG-console.log("GTIN:" + gtin + "===" + record["6"].value);
+							return gtin;
+						}
+
+					} else {
+						//DEBUG-console.error("Fetch failed:", response.status, response.statusText);
+						return null;
+					}
+				} catch (error) {
+					//DEBUG-console.error("Fetch error:", error);
+					return null;
+				} finally {
+					//hideSpinner();
+				}
+			};
+
+
+			async function getConfig() {
+				try {
+					const response = await fetch(
+						configUrl
+					);
+					const data = await response.json();
+					return data.config;
+				} catch (error) {
+					showInfoMessage("Error fetching config:" + error, true);
+					return null;
+				}
+
+			}
+
+			async function initApp() {
+				//DEBUG-console.log("InitApp");
+				// get logged in user
+				//if (typeof QuickBase !== 'undefined') {
+					//var loggedInUserID = QuickBase.User.id;
+					//DEBUG-console.log("loggedInUserID:" + loggedInUserID);
+					//DEBUG-console.log("gReqUserFname" + gReqUserFname);
+				//}
+				const config = await getConfig();
+				//DEBUG-console.log("JSON.stringify(config):" + JSON.stringify(config));
+
+				if (!config) {
+					showInfoMessage("Unable to access config file" + config, true);
+				}
+				//get QB info
+
+				quickbaseSBSToken = config.settings.quickbaseSBSToken;
+				quickbaseSBSHead = config.settings.quickbaseSBSHead;
+				quickbaseSBSLine = config.settings.quickbaseSBSLine;
+				quickbaseEoPPOLine = config.settings.quickbaseEoPPOLine;
+				quickbaseGTINMaster = config.settings.quickbaseGTINMaster;
+				quickbaseSBSEoP = config.settings.quickbaseSBSEoP;
+
+				quickbaseSBSInboundHead = config.settings.quickbaseSBSInboundHead;
+				quickbaseSBSInboundLine = config.settings.quickbaseSBSInboundLine;
+				quickbaseSBSInbound = config.settings.quickbaseSBSInbound;
+				quickbaseEoPPOLine = config.settings.quickbaseEoPPOLine;
+				quickbaseGTINMaster = config.settings.quickbaseGTINMaster;
+				quickbaseSBSEoP = config.settings.quickbaseSBSEoP;
+
+				//DEBUG-console.log("quickbaseSBSToken:" + quickbaseSBSToken);
+				//DEBUG-console.log("quickbaseSBSHead:" + quickbaseSBSHead);
+				//DEBUG-console.log("quickbaseSBSLine:" + quickbaseSBSLine);
+				//DEBUG-console.log("quickbaseSBSInboundHead:" + quickbaseSBSInboundHead);
+				//DEBUG-console.log("quickbaseSBSInboundLine:" + quickbaseSBSInboundLine);
+				//DEBUG-console.log("quickbaseSBSInbound:" + quickbaseSBSInbound);
+				//DEBUG-console.log("quickbaseEoPPOLine:" + quickbaseEoPPOLine);
+				//DEBUG-console.log("quickbaseSBSEoP:" + quickbaseSBSEoP);
+
+
+				window.barcodeCounts = {};
+				
+				fillPurchaseOrders();
+				totalQuantity = 0;
+				distinctGTINs.clear();
+				//DEBUG-console.log("hiding finalisepo");
+				document.getElementById("finalisePO").style.visibility = "hidden";
+				document.getElementById("discardPO").style.visibility = "hidden";
+
+				//window.barcodeCounts = {};
+
+			};
+
+			async function fetchRecordsForPurchaseOrder(selectedPO) {
+
+				console.log(">>fetchRecordsForPurchaseOrder");
+				displayPONumber.textContent = selectedPO;
+
+				clearWarningMessage("");
+				eopCounts = false;
+				zeroCounts = false;
+				notonPOCounts = false;
+				gtinNotOnPO = {};
+
+
+				let tmpWarehouse = "";
+				let tmpCompany = "";
+				let tmpUsers = "";
+
+				let checkUser = "";
+
+				let totalNumberOfGTINS = 0;
+				let totalNumberOfLines = 0;
+				let totalNumberOfUnselectableLines = 0;
+				let totalCountOfGTINS = 0;	
+
+				const gtinTableBody = document.getElementById("gtinTableBody");
+				gtinTableBody.innerHTML = "";
+
+				const headers = {
+					"QB-Realm-Hostname": "voyager.quickbase.com",
+					"Authorization": quickbaseSBSToken,
+					"Content-Type": "application/json"
+				};
+
+				const queryBody = {
+					from: quickbaseSBSInbound,
+					select: [7,8,9,10,11,12,13,14,15,3],
+					where: `{6.EX.'${selectedPO}'} AND {17.EX.'false'}`,
+					//where: `{6.EX.'${selectedPO}'} AND {11.XEX.'9359333467587'}`,
+					sortby: [{ "fieldId": 6, "order": "ASC" }]
+				};
+
+				try {
+					const response = await fetch("https://api.quickbase.com/v1/records/query", {
+					method: "POST",
+					headers: headers,
+					body: JSON.stringify(queryBody)
+					});
+
+					if (response.ok) {
+						const data = await response.json();
+						console.log(">>fetchRecordsForPurchaseOrder - Received records for selected PO:", data);
+
+						const records = data.data; 
+
+						totalNumberOfLines = records.length;
+
+						let allGTINsInRecords = records.filter(record => record["15"].value).map(record => record["11"].value);
+
+						console.log(">>fetchRecordsForPurchaseOrder - allGTINsInRecords:", allGTINsInRecords);
+
+						for (const record of records) {
+
+							console.log(">>fetchRecordsForPurchaseOrder - record:", record);
+
+							let myGTIN = record["11"].value;
+							let occurrencesOfThisGTIN = records.filter(record => record["11"].value === myGTIN).length;
+
+							console.log(">>fetchRecordsForPurchaseOrder - AFTER occurrencesOfThisGTIN");
+							console.log(">>fetchRecordsForPurchaseOrder - occurrencesOfThisGTIN:", occurrencesOfThisGTIN);
+
+							if (GTINs.indexOf(record["11"].value) === -1) {
+								GTINs.push(record["11"].value);
+								totalNumberOfGTINS = totalNumberOfGTINS + 1;
+							}
+
+							console.log(">>fetchRecordsForPurchaseOrder - totalNumberOfGTINS:" + totalNumberOfGTINS);
+							totalCountOfGTINS = totalCountOfGTINS + record["15"].value;
+
+							if (tmpCompany === "") {
+								tmpCompany = record["8"].value;
+							}
+
+							if (tmpWarehouse === "") {
+								tmpWarehouse = record["9"].value;
+							}
+
+							let currentUser = record["10"].value.replace(/['"]+/g, '');
+
+							if (checkUser != currentUser) {
+								if (tmpUsers === "") {
+									tmpUsers = currentUser;
+								} else {
+									tmpUsers = tmpUsers + "/" + currentUser;
+								}
+								checkUser = currentUser;
+							}
+
+							// Get around a current QB bug
+							if (!record["15"].value || record["15"].value == 0) {
+								record["15"].value = 0;
+								console.log(">>fetchRecordsForPurchaseOrder - set amount to 0: " + record["11"].value + " =  " + record["15"].value);
+							}
+							
+							let amount = record["15"].value;
+
+							const row = gtinTableBody.insertRow(-1);
+							const cell1 = row.insertCell(0);	//style
+							const cell2 = row.insertCell(1);	//colour
+							const cell3 = row.insertCell(2);	//size
+							const cell4 = row.insertCell(3);	//record ID
+							const cell5 = row.insertCell(4);	//select item
+							const cell6 = row.insertCell(5);	//gtin (11)
+							const cell7 = row.insertCell(6);	//description - style (12), colour (13), size (14)
+							const cell8 = row.insertCell(7);	//qty
+							const cell9 = row.insertCell(8);	//details - scan date (7), user (10), company (8), warehouse (9)
+
+							cell1.textContent = record["12"].value; //style
+							cell2.textContent = record["13"].value; //colour
+							cell3.textContent = record["14"].value; //size
+							cell4.textContent = record["3"].value; //rec id
+
+
+							cell1.style.display = 'none';
+							cell2.style.display = 'none';
+							cell3.style.display = 'none';
+							cell4.style.display = 'none';
+
+							let scanDetail = "";
+
+
+
+							if (record["7"].value) {
+								const formattedDate = formatDateToQuickbaseFormat(record["7"].value);
+								scanDetail = formattedDate + "-" + record["10"].value + "-" + record["8"].value + "-" + record["9"].value;
+							} else {
+								scanDetail = record["10"].value + "-" + record["8"].value + "-" + record["9"].value; 
+							}	
+
+							console.log(">>fetchRecordsForPurchaseOrder - scanDetail:" + scanDetail);
+
+							cell6.textContent = record["11"].value; //gtin
+							cell7.textContent = record["12"].value + "-" + record["13"].value + "-" + record["14"].value;
+							cell8.textContent = amount;	//count
+							cell9.textContent = scanDetail;
+
+							const includeCountLine = document.createElement("input");
+							includeCountLine.type = "checkbox";
+							includeCountLine.name = "selectItemCheckbox"; 
+
+							// If there's already a count for this GTIN, don't allow it to be finalised again
+							console.log(">>fetchRecordsForPurchaseOrder - >>>>myGTIN: " + myGTIN);
+							console.log(">>fetchRecordsForPurchaseOrder - gtinEoPCountsList:", JSON.stringify(gtinEoPCountsList, null, 2));
+
+//							if(gtinEoPCountsList.hasOwnProperty(myGTIN) && gtinEoPCountsList[myGTIN].amount > 0) {
+
+							includeCountLine.addEventListener('change', updateCountsBasedOnCheckbox);  	
+							cell5.appendChild(includeCountLine);
+
+							//if the PO isn't real, hide the selectbox
+							if (!currentPOInEop) {
+								includeCountLine.style.visibility = 'hidden';
+								console.log(">>fetchRecordsForPurchaseOrder - includeCountLine.style.visibility = 'hidden' - !currentPOInEop");
+								showErrorMessage("This PO is not in Eye of Providence - you won't be able to finalise it.");
+								document.getElementById("selectAll").style.visibility = "hidden";
+								document.getElementById("deselectAll").style.visibility = "hidden";
+								document.getElementById("discardPO").style.visibility = "visible";
+
+							} else	{
+								document.getElementById("selectAll").style.visibility = "visible";
+								document.getElementById("deselectAll").style.visibility = "visible";
+								document.getElementById("discardPO").style.visibility = "hidden";
+								if (!gtinPOList.hasOwnProperty(myGTIN)) {
+									// GTIN is not on PO!!
+									if (!notonPOCounts) {
+										showErrorMessage("Some GTINs marked in red do not exist on this PO. ");
+
+										//dmb not on
+										notonPOCounts = true;
+										console.log(">>fetchRecordsForPurchaseOrder - GTIN " + myGTIN + " has a value greater than 0 in gtinEoPCountsList.");
+									}
+									if (!gtinNotOnPO.hasOwnProperty(myGTIN)) {
+										console.log(">>fetchRecordsForPurchaseOrder - adding gtinNotOnPO:", myGTIN);
+										gtinNotOnPO[myGTIN] = {amount};
+									}
+									includeCountLine.style.visibility = 'hidden'; 
+									console.log(">>fetchRecordsForPurchaseOrder - includeCountLine.style.visibility = 'hidden' - currentPOInEop but !gtinPOList");
+
+									row.style.color = "red";  // Change text color of the row to red
+								}
+							}
+							console.log(">>fetchRecordsForPurchaseOrder - gtinEoPCountsList:", gtinEoPCountsList);
+							console.log(">>fetchRecordsForPurchaseOrder - gtinRecountRequested:", gtinRecountRequested);
+							if (gtinEoPCountsList.hasOwnProperty(myGTIN)) {
+								//GTIN already on EOP
+								console.log(">>fetchRecordsForPurchaseOrder - GTIN already on EOP: " + myGTIN + " gtinEoPCountsList:" + gtinEoPCountsList.hasOwnProperty(myGTIN)  + " amount:" +  gtinEoPCountsList[myGTIN].amount   + " gtinRecountRequested:" + gtinRecountRequested.hasOwnProperty(myGTIN));								
+								
+								// if recounts requested
+								if (gtinRecountRequested.hasOwnProperty(myGTIN))	{
+									//if this is line zero
+									if (amount === 0) {
+										//if this is the only line
+										if(occurrencesOfThisGTIN > 1){
+											// hide as we have a recount line already
+											includeCountLine.style.visibility = 'hidden'; 
+											console.log(">>fetchRecordsForPurchaseOrder - Shades of gray");								
+											row.style.color = "LightGray"; 
+										}
+									}
+								} else {
+									// no recount request
+									if (gtinEoPCountsList[myGTIN].amount !==0) {
+										//GTIN has already been counted and it wasn't 0, and there's no recount request, can't select
+										console.log(">>fetchRecordsForPurchaseOrder - GTIN already counted and there's no recount request" + myGTIN);
+										includeCountLine.style.visibility = 'hidden'; 
+										row.style.color = "orange"; 
+										if (!eopCounts) {
+											showWarningMessage("Some GTINs already have counts in EoP so you won't be able to select them. You'll need to request a recount first (marked in orange and not selectable). ");
+											eopCounts = true;
+										}
+									}	
+								}	
+/* 
+								if (gtinEoPCountsList[myGTIN].amount !==0 && !gtinRecountRequested.hasOwnProperty(myGTIN))	{
+									//GTIN has already been counted and it wasn't 0, and there's no recount request, can't select
+									console.log("GTIN already counted and there's no recount request" + myGTIN);
+									includeCountLine.style.visibility = 'hidden'; 
+									row.style.color = "orange"; 
+									if (!eopCounts) {
+										showWarningMessage("Some GTINs already have counts in EoP so you won't be able to select them. You'll need to request a recount first (marked in orange) ");
+										eopCounts = true;
+									}
+								} else {
+									//If EOP != 0 . 
+									//if there's a recount request and this line has an amount then allow select
+									if (!gtinRecountRequested.hasOwnProperty(myGTIN)) {
+										console.log("=================================================================");
+										console.log("myGTIN: " + myGTIN);
+										console.log("includeCountLine.style.visibility = 'hidden' - gtinEoPCountsList but either in gtinRecountRequested or gtinEoPCountsList.amount = 0 ");
+										console.log("gtinEoPCountsList[myGTIN].amount" + gtinEoPCountsList[myGTIN].amount);
+										console.log("gtinRecountRequested", gtinRecountRequested);
+										console.log("gtinEoPCountsList", gtinEoPCountsList);
+										console.log("gtinPOList", gtinPOList);
+										includeCountLine.style.visibility = 'hidden'; 
+									} else {
+										//If a recount has been requested and this one is zero, check if there are any other counts.
+										//GTIN amount is zero or exists in gtinRecountRequested
+
+									}
+									if (amount === 0) {
+										//if this is the recount request, light grey	
+										row.style.color = "gray"; 
+									}
+
+								}
+ */							}
+
+/* 							if ((gtinEoPCountsList.hasOwnProperty(myGTIN) && gtinEoPCountsList[myGTIN].amount !=0) && !gtinRecountRequested.hasOwnProperty(myGTIN))	{
+								// If EoPCount exists and there's no Recount request, output message and don't allow select
+								if (!eopCounts) {
+									showWarningMessage("Some GTINs already have counts in EoP so you won't be able to select them. You'll need to request a recount first. ");
+									eopCounts = true;
+									includeCountLine.style.visibility = 'hidden'; 
+									console.log("GTIN " + myGTIN + " has a value greater than 0 in gtinEoPCountsList.");
+								}
+							} */
+
+							// If a recount has been requested but hasn't been done, mark as red
+							console.log(">>fetchRecordsForPurchaseOrder - myGTIN:", myGTIN);
+							console.log(">>fetchRecordsForPurchaseOrder - gtinRecountRequested:", gtinRecountRequested);
+							console.log(">>fetchRecordsForPurchaseOrder - gtinRecountRequested:", gtinRecountRequested);
+							console.log(">>fetchRecordsForPurchaseOrder - allGTINsInRecords:", allGTINsInRecords);
+
+							if (gtinRecountRequested.hasOwnProperty(myGTIN)) {
+								// if it hasn't been done, mark in read
+								if (!allGTINsInRecords.includes(myGTIN)) {
+									if (!zeroCounts) {
+										// Present message if first time
+										showWarningMessage("A recount has been requested that hasn't been performed (marked in orange and selectable).");
+									}
+									zeroCounts = true;
+									row.style.color = "orange";  // Change text color of the row to red
+								} else {
+									// this is a recount GTIN which has been recounted, if this is the ZERO, no need to select this one
+									if (!record["15"].value) {
+										includeCountLine.style.visibility = 'hidden'; 
+										console.log(">>fetchRecordsForPurchaseOrder - includeCountLine.style.visibility = 'hidden' - gtinRecountRequested and !allGTINsInRecords");
+
+									}
+								}
+							}
+
+							//if hidden, count
+							if (includeCountLine.style.visibility === "hidden") {
+								console.log(">>fetchRecordsForPurchaseOrder - includeCountLine.style.visibility = 'hidden'");
+								totalNumberOfUnselectableLines++;  
+							}
+
+							
+						}
+
+
+						displayCount.textContent = 0;
+						displayNoGTINs.textContent = 0;
+						displayCompany.textContent = tmpCompany;
+						displayWarehouse.textContent = tmpWarehouse;
+						displayUsers.textContent = tmpUsers;
+					} else {
+						//DEBUG-console.error("Fetch failed:", response.status, response.statusText);
+					}
+				} catch (error) {
+					//DEBUG-console.error("Fetch error:", error);
+				} finally {
+					console.log(">>fetchRecordsForPurchaseOrder - totalNumberOfLines:" + totalNumberOfLines);
+					console.log(">>fetchRecordsForPurchaseOrder - totalNumberOfUnselectableLines:" + totalNumberOfUnselectableLines);
+					if (totalNumberOfUnselectableLines === totalNumberOfLines){
+						//hide select buttons  
+						document.getElementById("selectAll").style.visibility = "hidden";
+						document.getElementById("deselectAll").style.visibility = "hidden";
+					}
+					checkIfZeroLinesWillBeWritten();
+				}
+			}
+
+			async function processZeroRecords() {
+
+
+				// loop through gtinZeroSummariesToFinalise
+				// write records to EoP	
+
+				for (let gtin in gtinZeroSummariesToFinalise) {
+					console.log(">>>>processZeroRecords - GTIN:" + gtin);
+					console.log(">>>>processZeroRecords - details:", gtinZeroSummariesToFinalise[gtin]);
+					const [ style, colour, size, count ] = gtinZeroSummariesToFinalise[gtin].split("|");
+					console.log(">>>>QBEoP - GTIN:" + gtin + " - " + count + "-" +  style + "-" +  colour + "-" +  size);
+					await QBEoP(gtin, 0, style, colour, size);
+				}
+
+			};
+
+			
+			async function processTableRecords() {
+
+				const checkboxes = document.querySelectorAll('#gtinTableBody input[type="checkbox"]');
+				const currentDate = new Date().toISOString();
+				gtinSummariesToFinalise = {};
+
+				for (const checkbox of checkboxes) {
+					const row = checkbox.closest("tr");
+					const recordId = row.cells[3].textContent;
+					const gtin = row.cells[5].textContent;
+					const count = row.cells[7].textContent;
+
+					
+					let inboundUpdateBody = {
+						"3": {value: recordId},	// recordID
+						"17": { value: true },   // Processed flag
+						"19": { value: currentDate },  // Processed Date
+						"20": { value: loggedInUserName}  // logged in user
+					};
+
+
+					if (checkbox.checked) {
+						const count = parseFloat(row.cells[7].textContent) || 0; // Convert to number
+
+						// Aggregate the counts for each GTIN
+						if (gtinSummariesToFinalise[gtin]) {
+							gtinSummariesToFinalise[gtin].count += count;
+						} else {
+							const style = row.cells[0].textContent;
+							const colour = row.cells[1].textContent;
+							const size = row.cells[2].textContent;
+							gtinSummariesToFinalise[gtin] = {count, style, colour, size };
+						}
+
+						inboundUpdateBody["16"] = { value: true };
+
+						if (!count) {
+							inboundUpdateBody["15"] = { value: 0 };
+						}
+					}
+
+					//DEBUG-console.log(">>>>updateInboundTable - updateData " + JSON.stringify(inboundUpdateBody));
+					//Don't update Inbound if Recount with no recounts and set to ignore
+					//If GTIN in recounts but not in distinct, don't write record
+					//   DMB!!! if ()
+
+					if (!distinctGTINs.has(gtin) && gtinRecountRequested.hasOwnProperty(gtin)) {
+						//DEBUG-console.log(">>>>updateInboundTable - NOT WRITING: " + gtin);
+					} else {
+						await updateInboundTable(recordId, inboundUpdateBody);
+					}
+
+				}
+
+				// Call QBEoP once per GTIN
+				for (let gtin in gtinSummariesToFinalise) {
+					const {count, style, colour, size } = gtinSummariesToFinalise[gtin];
+					//DEBUG-console.log(">>>>QBEoP - GTIN:" + gtin + " - " + count + "-" +  style + "-" +  colour + "-" +  size);
+					await QBEoP(gtin, count.toString(), style, colour, size);
+				}
+
+				await fillPurchaseOrders();
+
+			}
+
+			async function discardTableRecords() {
+
+				const checkboxes = document.querySelectorAll('#gtinTableBody input[type="checkbox"]');
+				const currentDate = new Date().toISOString();
+				gtinSummariesToFinalise = {};
+
+				for (const checkbox of checkboxes) {
+					const row = checkbox.closest("tr");
+					const recordId = row.cells[3].textContent;
+					const gtin = row.cells[5].textContent;
+					const count = row.cells[7].textContent;
+
+					
+					let inboundUpdateBody = {
+						"3": {value: recordId},				// recordID
+						"17": { value: true },   			// Processed flag
+						"19": { value: currentDate },  		// Processed Date
+						"20": { value: loggedInUserName},  	// logged in user
+						"25": { value: true}  				// discarded
+					};
+
+
+					//DEBUG-console.log(">>>>discardTableRecords - updateData " + JSON.stringify(inboundUpdateBody));
+					await updateInboundTable(recordId, inboundUpdateBody);
+
+				}
+
+				await fillPurchaseOrders();
+
+				}
+
+
+			async function updateInboundTable(recordId, updateData) {
+				showSpinner();
+				//DEBUG-console.log(">>>>updateInboundTable - Record ID " + recordId);
+				//DEBUG-console.log(">>>>updateInboundTable - updateData " + JSON.stringify(updateData));
+				const headers = {
+					"QB-Realm-Hostname": "voyager.quickbase.com",
+					"Authorization": quickbaseSBSToken,
+					"Content-Type": "application/json"
+				};
+
+				const payload = {
+					to: quickbaseSBSInbound, 
+					data: [updateData],
+					fieldsToReturn: [3, 16, 17, 19, 20, 15, 25]
+				};
+
+				try {
+					const response = await fetch(`https://api.quickbase.com/v1/records`, {
+						method: "POST", 
+						headers: headers,
+						body: JSON.stringify(payload)
+					});
+
+					const responseBody = await response.json();
+					//DEBUG-console.log(">>>>updateInboundTable - Response body:", responseBody);
+
+					if (!response.ok) {
+						//DEBUG-console.log(">>>>updateInboundTable - Failed to update record");
+						throw new Error(`Failed to update record ${recordId}. Status: ${response.status}`);
+					} else {
+						//DEBUG-console.log(">>>>updateInboundTable - Record written successfully");
+					}
+
+				} catch (error) {
+					//DEBUG-console.error(`Error updating record ${recordId}:`, error);
+					//DEBUG-console.log(">>>>updateInboundTable - Error updating record");
+				} finally {
+					hideSpinner();
+				}
+			}
+
+
+ 
+			async function QBEoP(GTIN, Count, Style, Colour, Size) {
+				showSpinner();
+
+				//DEBUG-console.log(">>>>QBEoP - GTIN:" + GTIN + " - " + Count + "-" +  Style + "-" +  Colour + "-" +  Size);
+
+				//Get recordID from gtinPOList  DMB!!
+				const poDetailsString = gtinPOList[GTIN].details;
+				const [POcount, POstyle, POcolour, POsize, POrecID] = poDetailsString.split("|");
+				//DEBUG-console.log(">>>>QBEoP - GTIN:" + GTIN + " - " + Count + "-" +  Style + "-" +  Colour + "-" +  Size + "-" +  Size);
+				console.log(">>>>QBEoP from POList - GTIN:" + GTIN + " - " + POcount + "-" +  POstyle + "-" +  POcolour + "-" +  POsize  + "-" +  POrecID);
+				//return;
+
+
+				let headers = {
+					"QB-Realm-Hostname": "voyager.quickbase.com",
+					"Authorization": quickbaseSBSToken,
+					"Content-Type": "application/json"
+				};
+
+				const currentDate = new Date().toISOString();
+
+				//DEBUG-console.log("gtinUpsertRecords:",gtinUpsertRecords);
+
+
+				const commonPayloadData = {
+					"19": {
+						value: POrecID
+					},
+					"27": {
+						value: currentDate
+					},
+					"28": {
+						value: displayUsers.textContent
+					},
+					"6": {
+						value: GTIN
+					},
+					"7": {
+						value: Style
+					},
+					"8": {
+						value: Colour
+					},
+					"9": {
+						value: Size
+					},
+					"34": {
+						value: displayPONumber.textContent
+					},
+					"17": {
+						value: displayWarehouse.textContent
+					},
+					"10": {
+						value: Count
+					},
+					"18": {
+						value: displayCompany.textContent
+					}
+				};
+
+				const commonFieldsToReturn = [27, 28, 6, 7, 8, 9, 34, 17, 10, 18, 3];
+
+				if (gtinUpsertRecords[GTIN]) {
+					let recID = gtinUpsertRecords[GTIN].recID;
+					commonPayloadData["3"] = { value: recID };
+					commonFieldsToReturn.push(3);
+				}
+
+				const payload = {
+					to: quickbaseSBSEoP,
+					data: [commonPayloadData],
+					fieldsToReturn: commonFieldsToReturn
+				};
+
+				//DEBUG-console.log(">>>>QBEoP - payload:" + JSON.stringify(payload));
+
+				
+				try {
+					const response = await fetch(`https://api.quickbase.com/v1/records`, {
+						method: "POST", 
+						headers: headers,
+						body: JSON.stringify(payload)
+					});
+
+					const responseBody = await response.json();
+					//DEBUG-console.log(">>>>QBEoP - Response body:", responseBody);
+
+					if (!response.ok) {
+						//DEBUG-console.log(">>>>QBEoP - Failed to update record");
+						throw new Error(`Failed to update record ${GTIN}. Status: ${response.status}`);
+					} else {
+						//DEBUG-console.log(">>>>QBEoP - Record written successfully");
+					}
+
+				} catch (error) {
+					//DEBUG-console.error(`Error updating record ${GTIN}:`, error);
+					//DEBUG-console.log(">>>>QBEoP - Error updating record");
+				} finally {
+					hideSpinner();
+				}
+				
+
+			}; 
+
+
+
+
+
+
+			document.getElementById("deselectAll").addEventListener("click", deselectAllCheckboxes);
+			document.getElementById("selectAll").addEventListener("click", selectAllCheckboxes);
+			
+
+
+			function selectAllCheckboxes() {
+
+				console.log(">>selectAllCheckboxes");
+
+				const checkboxes = document.querySelectorAll('#gtinTableBody input[type="checkbox"]');
+    
+				// Reset totals first
+				totalQuantity = 0;
+				distinctGTINs.clear();
+
+				checkboxes.forEach(checkbox => {
+					const isVisible = window.getComputedStyle(checkbox).visibility !== "hidden";
+
+        			if (isVisible) {
+						
+
+						checkbox.checked = true;
+						
+						const row = checkbox.closest("tr");
+						console.log(">>selectAllCheckboxes isvisible:" + row.cells[5].textContent);
+						const gtin = row.cells[5].textContent;
+						const qty = parseInt(row.cells[7].textContent, 10);
+
+						distinctGTINs.add(gtin);
+						totalQuantity += qty;
+					}
+				});
+
+				displayCount.textContent = totalQuantity;
+				displayNoGTINs.textContent = distinctGTINs.size;
+
+				if (currentPOInEop && distinctGTINs.size > 0) {
+					document.getElementById("finalisePO").style.visibility = "visible";
+				}
+
+				checkIfZeroLinesWillBeWritten();
+
+			}
+
+
+
+			function deselectAllCheckboxes() {
+				const checkboxes = document.querySelectorAll('#gtinTableBody input[type="checkbox"]');
+				checkboxes.forEach(checkbox => {
+					checkbox.checked = false;
+				});
+
+				// Reset totals since all are deselected
+				totalQuantity = 0;
+				distinctGTINs.clear();
+				//DEBUG-console.log("hiding finalisepo");
+
+				document.getElementById("finalisePO").style.visibility = "hidden";
+				document.getElementById("discardPO").style.visibility = "hidden";
+
+
+				displayCount.textContent = totalQuantity;
+				displayNoGTINs.textContent = distinctGTINs.size;
+				// DMB!!
+				checkIfZeroLinesWillBeWritten();
+			}
+
+			function updateCountsBasedOnCheckbox(event) {
+				const checkbox = event.target;
+				const row = checkbox.closest("tr");
+				const gtin = row.cells[5].textContent;
+				const qty = parseInt(row.cells[7].textContent, 10);
+
+				if (checkbox.checked) {
+					distinctGTINs.add(gtin);
+					totalQuantity += qty;
+				} else {
+					// Check if there are any other checked boxes with the same GTIN
+					const allCheckboxesForThisGTIN = [...document.querySelectorAll('#gtinTableBody input[type="checkbox"]')]
+						.filter(chk => chk.closest("tr").cells[5].textContent === gtin);
+						
+					if (!allCheckboxesForThisGTIN.some(chk => chk.checked)) {
+						distinctGTINs.delete(gtin);
+					}
+					totalQuantity -= qty;
+				}
+
+				displayCount.textContent = totalQuantity;
+				displayNoGTINs.textContent = distinctGTINs.size;
+
+				const isChecked = [...document.querySelectorAll('#gtinTableBody input[type="checkbox"]')].some(chk => chk.checked);
+				//DEBUG-console.log("hiding or showing finalisepo");
+
+				if (currentPOInEop) {
+					document.getElementById("finalisePO").style.visibility = isChecked ? "visible" : "hidden";
+				};
+				// DMB!!
+				checkIfZeroLinesWillBeWritten();
+			}
+
+			function calculateSelectedItems() {
+				const checkboxes = document.querySelectorAll('#gtinTableBody input[type="checkbox"]');
+				let totalQuantity = 0;
+				let distinctGTINs = new Set();
+
+				checkboxes.forEach(checkbox => {
+					if (checkbox.checked) {
+						const row = checkbox.closest("tr");
+						const gtin = row.cells[5].textContent;
+						const qty = parseInt(row.cells[7].textContent, 10);
+						
+						distinctGTINs.add(gtin);
+						totalQuantity += qty;
+					}
+				});
+				// DMB!!
+				checkIfZeroLinesWillBeWritten();
+			}
+
+
+			function checkIfZeroLinesWillBeWritten () {
+				// differences = what's in gtinPOList that isn't in distinctGTINs.  DMB!!
+				// Use this to put a message when there will be zero lines written - does this at the end but need a message up front
+				clearWarningMessage("There are GTINs missing compared to the PO so zeroes will be created for those upon Finalise");
+
+				console.log(">>CHECK gtinPOList:",gtinPOList);
+				console.log(">>CHECK distinctGTINs:",distinctGTINs);
+				console.log(">>CHECK gtinEoPCountsList:",gtinEoPCountsList);
+				console.log(">>CHECK gtinNotOnPO:",gtinNotOnPO);
+				
+				//gtinsOnPOButNotOnScreen = all those gtins on the PO that aren't in the onscreen table
+				const gtinsOnPOButNotOnScreen = Object.keys(gtinPOList).filter(gtin => !distinctGTINs.has(gtin));
+				console.log(">>CHECK gtinsOnPOButNotOnScreen: " + gtinsOnPOButNotOnScreen);    
+
+				//gtinsOnPOButNotOnScreenOrEoPCount = all those gtins on the PO that also aren't in the EoP Counts List table
+				const gtinsOnPOButNotOnScreenOrEoPCount = gtinsOnPOButNotOnScreen.filter(gtin => !gtinEoPCountsList.hasOwnProperty(gtin));
+				console.log(">>CHECK gtinsOnPOButNotOnScreenOrEoPCount: " + gtinsOnPOButNotOnScreenOrEoPCount);    
+
+				if (!gtinsOnPOButNotOnScreenOrEoPCount.length > 0) {
+					console.log(">>CHECK nothing missing:" + gtinsOnPOButNotOnScreenOrEoPCount);  
+					missingPOLines = false;
+				} else {
+					console.log(">>CHECK missing lines: "  + gtinsOnPOButNotOnScreenOrEoPCount);  
+					if (currentPOInEop) {
+						missingPOLines = true;
+						showWarningMessage("There are GTINs missing compared to the PO so zeroes will be created for those upon Finalise");
+						console.log("gtinPOList",gtinPOList);
+					};
+				}
+
+			};
+
+			document.getElementById("discardPO").addEventListener("click", async function() {
+				//DEBUG-console.log("discardPO clicked");
+				
+				if (confirm("Are you sure you want to discard this PO? You won't be able to process it in the future.") == true) {
+					await discardTableRecords();
+					const lineTableContainer = document.getElementById("lineTableContainer");
+					lineTableContainer.style.visibility = "hidden"; 
+					document.getElementById("finalisePO").style.visibility = "hidden";
+					document.getElementById("discardPO").style.visibility = "hidden";
+
+					showInfoMessage("Purchase Order " + displayPONumber.textContent + " has been discarded", false);
+				}
+
+			});
+
+			document.getElementById("finalisePO").addEventListener("click", async function() {
+
+				//If any don't have counts included, and don't exist in EoP Counts, pop up a message to confirm they'll be set to 0
+
+				let zeroCountAdded = false; // to track if we've added any zero counts
+				gtinZeroSummariesToFinalise = {};
+
+				// Iterate through each GTIN in gtinPOList
+				for (let gtin in gtinPOList) {
+					if (!distinctGTINs.has(gtin) && !gtinEoPCountsList.hasOwnProperty(gtin)) {
+						// If the GTIN is on the PO, but isn't in this count (distinctGTINs), and also isn't in EoP already (gtinEoPCountsList)
+						// WRite a zero line
+						//DEBUG-console.log(">>FINALISE - Writing gtin to gtinZeroSummariesToFinalise: " + gtin);
+						
+						gtinZeroSummariesToFinalise[gtin] = gtinPOList[gtin].details; // add a zero record to gtinSummariesToFinalise
+						//DEBUG-console.log('>>FINALISE - gtin', gtin);
+						//DEBUG-console.log('>>FINALISE - distinctGTINs', JSON.stringify(distinctGTINs, null, 2));
+						//DEBUG-console.log('>>FINALISE - gtinEoPCountsList', JSON.stringify(gtinEoPCountsList, null, 2));
+						//DEBUG-console.log('>>FINALISE - gtinPOList', JSON.stringify(gtinPOList, null, 2));
+						//DEBUG-console.log('>>FINALISE - gtinZeroSummariesToFinalise', JSON.stringify(gtinZeroSummariesToFinalise, null, 2));
+
+						zeroCountAdded = true;
+					}
+				}
+				
+				//DEBUG-console.log("AFTER  gtinZeroSummariesToFinalise:", gtinZeroSummariesToFinalise);
+				//DEBUG-console.log("AFTER  distinctGTINs:", distinctGTINs);
+				
+				let readableList = Array.from(distinctGTINs).join(', ');
+				let goQuestion = "";
+				if (zeroCountAdded) {
+        			goQuestion = "Note: GTIN(s) are missing compared to the PO. Those lines will be set to zero and " + readableList + " GTIN(s) will be sent to EoP for review, then this whole PO count will be set to processed in SBS";
+				} else {
+					goQuestion = readableList + " GTIN(s) will be sent to EoP for review, then this whole PO count will be set to processed in SBS";
+				}
+				
+				if (confirm(goQuestion) == true) {
+					await processZeroRecords();	
+					await processTableRecords();
+					const lineTableContainer = document.getElementById("lineTableContainer");
+					lineTableContainer.style.visibility = "hidden"; 
+					document.getElementById("finalisePO").style.visibility = "hidden";
+					document.getElementById("discardPO").style.visibility = "hidden";
+					document.getElementById("selectAll").style.visibility = "hidden";
+					document.getElementById("deselectAll").style.visibility = "hidden";
+
+
+					showInfoMessage("Purchase Order " + displayPONumber.textContent + " has been sent to Eye of Providence for review", false);
+				}
+
+			});
+
+
+			document.getElementById("dlPurchaseOrders").addEventListener("change", async function() {
+				showInfoMessage("");
+				clearWarningMessage("");
+				clearErrorMessage("");
+
+				gtinDisplaySection.style.display = "block";
+				gtinDisplaySection.style.visibility = "visible";
+				document.getElementById("finalisePO").style.visibility = "hidden";
+				document.getElementById("discardPO").style.visibility = "hidden";
+				
+				const lineTableContainer = document.getElementById("lineTableContainer");
+   		 		lineTableContainer.style.visibility = "visible"; 
+				//DEBUG-console.log("showing finalisepo - click PO");
+
+				//document.getElementById("finalisePO").style.visibility = "visible";
+
+				const selectedPO = this.value;
+				//DEBUG-console.log("Clicked it: " + selectedPO);
+				if (selectedPO !== "Choose a number") {  // Ignore the default option
+					console.log("***NEW PO SELECTED***");
+					GTINs = [];
+					gtinPOList = {};					//list of GTINs on the EoP POLine for this PO
+					gtinEoPCountsList = {};				//list of GTINs on the EoP Count for this PO
+					gtinRecountRequested = {};			//list of GTINs on the Inbound Count that are zero for this PO (recounts)
+					gtinSummariesToFinalise = {};		//list of GTINs to Finalise
+					gtinZeroSummariesToFinalise = {};	//list of GTINs on PO, not in Final
+					gtinUpsertRecords = {};
+					showSpinner();
+					await getPOLines(selectedPO);
+					await getPreviousEoPCounts(selectedPO);
+					await getRecountRequests(selectedPO);
+					//DEBUG-console.log(JSON.stringify(gtinEoPCountsList, null, 2));
+					//DEBUG-console.log(JSON.stringify(gtinPOList, null, 2));
+					await fetchRecordsForPurchaseOrder(selectedPO);
+				}
+			});
+
+
+			function showSpinner() {
+				//DEBUG-console.log("Showing spinner...");
+				document.body.classList.add('busy');
+			}
+
+			// Hide spinner
+			function hideSpinner() {
+				//DEBUG-console.log("Hiding spinner...");
+				document.body.classList.remove('busy');
+			}
+
+			document.querySelectorAll('[data-sort-col]').forEach(th => {
+				//DEBUG-console.log("click triggered");
+				th.addEventListener('click', (e) => {
+					//DEBUG-console.log("click activated");
+					const colIndex = e.target.getAttribute('data-sort-col');
+					sortTable(colIndex);
+				});
+			});
+
+			function sortTable(n) {
+				//DEBUG-console.log("sort table");
+				var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+
+				table = document.getElementById("lineTable");
+				switching = true;
+				// Set the sorting direction to ascending:
+				dir = "asc";
+				/* Make a loop that will continue until
+				no switching has been done: */
+				
+				while (switching) {
+					//DEBUG-console.log("switching");
+					// Start by saying: no switching is done:
+					switching = false;
+					rows = table.rows;
+					//DEBUG-console.log("rows: " + rows);
+					/* Loop through all table rows (except the
+					first, which contains table headers): */
+					for (i = 1; i < (rows.length - 1); i++) {
+						x = rows[i].getElementsByTagName("TD")[n];
+						y = rows[i + 1].getElementsByTagName("TD")[n];
+						
+						//DEBUG-console.log("Comparing: ", x.innerHTML, " and ", y.innerHTML);  // Log without .toLowerCase() for clarity
+					
+						//DEBUG-console.log("i: " + i);
+						// Start by saying there should be no switching:
+						shouldSwitch = false;
+						/* Check if the two rows should switch place,
+						based on the direction, asc or desc: */
+						if (dir == "asc") {
+							if (isNumeric(x.innerHTML) && isNumeric(y.innerHTML)) {
+								if (parseFloat(x.innerHTML) > parseFloat(y.innerHTML)) {
+									shouldSwitch = true;
+									break;
+								}
+							} else {
+								if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+									shouldSwitch = true;
+									break;
+								}
+							}
+						} else if (dir == "desc") {
+							if (isNumeric(x.innerHTML) && isNumeric(y.innerHTML)) {
+								if (parseFloat(x.innerHTML) < parseFloat(y.innerHTML)) {
+									shouldSwitch = true;
+									break;
+								}
+							} else {
+								if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+									shouldSwitch = true;
+									break;
+								}
+							}
+						}
+					}
+
+					table.offsetHeight;
+
+					if (shouldSwitch) {
+						//DEBUG-console.log("Switching rows: ", i, " and ", i + 1);
+						rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+						switching = true;
+						switchcount++;
+					} else {
+						//DEBUG-console.log("No switch needed for rows: ", i, " and ", i + 1);
+						if (switchcount == 0 && dir == "asc") {
+							dir = "desc";
+							switching = true;
+						}
+					}
+				}
+			}
+			function formatDateToQuickbaseFormat(isoDateStr) {
+				const dateObj = new Date(isoDateStr);
+				const options = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true };
+				return new Intl.DateTimeFormat('en-US', options).format(dateObj);
+			}
+
+			function isNumeric(value) {
+				return !isNaN(parseFloat(value)) && isFinite(value);
+			}
+
+
+
+
+
+		});
+	</script>
+</body>
+
+</html>

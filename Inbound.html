@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>vSBS</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="icon" type="image/x-icon" href="images\favicon.ico" />
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.12/css/all.css"
+		integrity="sha384-G0fIWCsCzJIMAVNQPfjH08cyYaUtMwjJwqiRKxxE/rx96Uroj1BtIQ6MLJuheaO9" crossorigin="anonymous" />
+	<link rel="stylesheet" href="css/bootstrap-5.0.2.min.css">
+	<script src="js/jquery-3.6.4.min.js"></script>
+	<script src="js/bootstrap-5.0.2.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+
+	<meta charset="UTF-8" />
+
+
+	<style>
+		html
+		{
+			margin: 0 auto;
+			max-width: 300px !important;
+		}
+
+
+		body {
+			font-family: Arial, sans-serif;
+			background-color: #f5f5f5;
+			/* display: flex; 
+			min-height: 100vh;
+          	flex-direction: column;  */
+			align-items: center;
+			justify-content: center;
+			padding: 1rem;
+			font-size: 0.75rem;
+		}
+
+		h1 {
+			margin: 2rem 0 1rem 0;
+			text-align: center;
+		}
+
+		input[type="text"] {
+			width: 100%;
+			padding: 0.5rem;
+			margin-bottom: 0.8rem; 
+			border-radius: 5px;
+			border: 1px solid #ccc;
+			font-size: 0.75rem;
+		} 
+
+		button {
+			padding: 0.8rem 1.5rem;
+			font-size: 1.2rem;
+			color: white;
+			border: none;
+			border-radius: 5px;
+			cursor: pointer;
+		}
+
+		button:hover {
+			background-color: #154c9e;
+		}
+
+		#error {
+			color: red;
+			display: none;
+			margin-bottom: 1rem;
+		}
+
+		table {
+			width: 100%;
+			border-collapse: collapse;
+			border-radius: 5px;
+			overflow: hidden;
+			margin-left: auto;
+			margin-right: auto;
+		}
+
+		.barcodeTable th,
+		.barcodeTable td {
+			border: 1px solid #ccc;
+			padding: 0.5rem;
+			text-align: center;
+		}
+
+		.barcodeTable th {
+			background-color: #f2f2f2;
+		}
+
+		.barcodeTable tbody tr:nth-child(odd) {
+			background-color: #f2f2f2;
+		}
+
+		.barcodeTable tbody tr:nth-child(even) {
+			background-color: #ffffff;
+		}
+
+		#summaryList .barcodeTable td:nth-child(2) {
+			font-weight: bold;
+		}
+
+
+		.spinContainer {
+			visibility: hidden;
+			text-align: center;
+			position: fixed;
+			top: 0; 
+			left: 0;
+			right: 0;
+			bottom: 0;
+			z-index: 9999;
+		}
+
+		.jumbotron {
+			background-color: rgba(255,255,255, 0.8); /* Semi transparent background. You can adjust this. */
+			width: 100%;
+			height: 100%;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+		}
+
+		.spinner-border {
+			width: 4rem; 
+			height: 4rem;
+			border-width: 0.3em; 
+			margin-top: 20px; 
+		}
+
+		
+		@keyframes fadeIn {
+		0%   { opacity: 0; }
+		100% { opacity: 1; }
+		}
+
+		body.busy #spinner {
+			visibility: visible !important;
+		/*	animation: fadeIn 0.3s; */
+		}
+
+		.center {
+			margin: auto;
+			width: 50%;
+			padding: 10px;
+		}
+
+		#datasetVersionDisplay {font-weight: bold; font-size: x-small;}
+		#datasetVersion {font-weight: bold; font-size: x-small;}
+		#countDisplay {font-weight: bold; font-size:  1.25em;}
+	</style>
+</head>
+
+
+<body>
+	<div class = "spinContainer" id="spinner">
+        <div class = "jumbotron" >
+          <h1>Processing your request</h1> 
+		  <div class="text-center">
+				<div class="spinner-border text-info" role="status">
+					<span class="sr-only">Loading... </span>
+				</div>
+			</div>
+        </div>
+    </div>
+
+
+	<div id="content">
+		<img src="images\SBScropped.png" style="width: 300px;"/>
+		<div id="app">
+			<div id="datasetVersion">SBS2 Version: 3-0831&nbsp;&nbsp;&nbsp;<p id="datasetVersionDisplay"></p></div>
+			
+
+
+			<div id="clTopSection">
+				<table width="70%" class="center">
+					<tr>
+						<td>
+							<div><button id="back2Index" style="width:54px !important"
+									class="btn btn-info btn-sm rounded-pill fas fa-chevron-left" type="button">
+									<font style="color: #ffffff !important;"><i class="fas fa-chevron-left"
+											style="color: #ffffff !important;" 
+											data-placement="right"></i></font>
+								</button></div>
+						</td>
+						<td>
+							<h2>&nbsp;&nbsp;&nbsp;Inbound</h2>
+						</td>
+					</tr>
+				</table>
+				
+			</div>
+			<table><tr><td><p id="countDisplay"></p></td></tr></table>
+			<div id="statusMessage" style="font-weight:bold;font-size: small;"></div>
+
+			<div id="clHeaderSection">
+				<table id="headerInfo">
+					<thead>
+						<tr>
+							<th>Company:</th>
+							<th><input type="text" id="inpCompany" placeholder="Enter Company" /></th>
+						</tr>
+						<tr>
+							<th>Warehouse:</th>
+							<th><input type="text" id="inpWarehouse" placeholder="Enter Warehouse" /></th>
+						</tr>
+						<tr>
+							<th>Name:</th>
+							<th><input type="text" id="inpName" placeholder="Enter Name" /></th>
+						</tr>
+						<tr>
+							<th>PO Number:</th>
+							<th><input type="text" id="inpPONumber" placeholder="Enter PO Number" /></th>
+						</tr>
+					</thead>
+				</table>
+			</div>
+
+			<div id="clCountDoneSection" style="display: none">
+				<table width="70%">
+					<tr>
+						<td><button id="submitToQuickbase" class="btn btn-success btn-sm rounded-pill w-100" type="button">
+								<font style="color: #ffffff !important;">Submit Scan</font>
+							</button></td>
+					</tr>
+				</table>
+				</br>
+				<table width="100%">
+					<tr>
+						<td width="50%">
+							<button id="restartScan" class="btn btn-primary btn-sm rounded-pill w-100" type="button"
+								width="100%">
+								<font style="color: #ffffff !important;">Resume Scan</font>
+							</button>
+						</td>
+						<td width="50%">
+							<button id="sendResults" class="btn btn-primary btn-sm rounded-pill w-100" type="button"
+								width="100%">
+								<font style="color: #ffffff !important;">Email Scan</font>
+							</button>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<button id="downloadResults" class="btn btn-primary btn-sm rounded-pill w-100" type="button"
+								width="100%">
+								<font style="color: #ffffff !important;">Download Scan</font>
+							</button>
+						</td>
+						<td>
+							<button id="newScan" class="btn btn-primary btn-sm rounded-pill w-100" type="button"
+								width="100%">
+								<font style="color: #ffffff !important;">New Scan</font>
+							</button>
+						</td>
+					</tr>
+				</table>
+			</div>
+			<div id="clBarCodeSection" style="display: none">
+				<table width="70%">
+					<tr>
+						<td><button id="stopScan" class="btn btn-primary btn-sm rounded-pill w-100" type="button">
+								<font style="color: #ffffff !important;">Stop Scan</font>
+							</button></td>
+					</tr>
+				</table>
+				</br>
+				<input type="text" id="barcodeInput" placeholder="Enter a barcode and press 'return'" />
+			</div>
+
+
+
+
+			<div id="clBarcodeDisplaySection" style="display: none">
+				<div id="barcodeCounter" style="font-weight:bold;font-size: 1.25em;"></div>
+				<div id="barcodeMessage" style="font-weight:bold;font-size: 1.25em;"></div>
+				<table class="barcodeTable">
+					<thead>
+						<tr>
+							<th>ITEM</th>
+							<th style="display:none;">DETAILS</th>
+							<th>QTY</th>
+							<th>&nbsp;</th>
+						</tr>
+					</thead>
+					<tbody id="tableBody"></tbody>
+				</table>
+			</div>
+
+		</div>
+	</div>
+	<script type="module">
+		const configUrl =
+			"https://voyager-group-production-apps.s3.ap-southeast-2.amazonaws.com/voyager-group-barcode-scanning-app/projectsoxconfig.json";
+		const databaseUrl =
+			"https://voyager-group-production-apps.s3.ap-southeast-2.amazonaws.com/voyager-group-barcode-scanning-app/VDA-ItemMaster.csv";
+		const databaseName = "Items";
+		const audioBarcodeFail = new Audio('mp3/barcodeFail.mp3');
+ 		const audioBarcodeSuccess = new Audio('mp3/barcodeSucess.mp4');
+		let fileName = "SBS-Inbound.csv";
+
+		const spinner = document.getElementById("spinner");
+
+		const barcodeCounter = document.getElementById("barcodeCounter");
+		let numberOfItems = 0;
+
+		const barcodeInput = document.getElementById("barcodeInput");
+		const clearDatabase = document.getElementById("clearDatabase");
+		const barcodeMessage = document.getElementById("barcodeMessage");
+		const datasetVersion = document.getElementById("datasetVersion");
+		
+		const datasetVersionDisplay = document.getElementById("datasetVersionDisplay");
+		const countDisplay = document.getElementById("countDisplay");
+		let validBarcodes = [];
+		let localVersion = localStorage.getItem("datasetVersion") || 99;
+		let hdrRecID = 0;
+		let eMailMessage = 1;
+		let barcodes = [];
+		let barcodeCounts = {};
+		let barcodeStyles = [];
+		let barcodeColours = [];
+		let barcodeSizes = [];
+		let barcodeNames = [];
+		let barcodeDescriptions = [];
+
+		let thedate = new Date();
+		let fullDate = thedate.toISOString();
+		let QBDate = thedate.toLocaleDateString("en-AU");
+		let AusDate = thedate.toLocaleDateString("en-AU", {
+			timeZone: "Australia/Sydney"
+		}).replace(/\//g, "-") + ' ' + thedate.toLocaleTimeString("en-AU", {
+			timeZone: "Australia/Sydney"
+		});
+
+
+		let scanDescription = "";
+		let scanShortDescription = "";
+		
+		var quickbaseRealmHostname = "";
+		var quickbaseSBSToken = "";
+		var quickbaseSBSHead = "";
+		var quickbaseSBSLine = "";
+		var quickbaseSBSInboundHead = "";
+		var quickbaseSBSInboundLine = "";
+		var quickbaseSBSInbound = "";
+//		var quickbaseSBSEoP = "";
+
+
+
+
+
+		document.addEventListener("DOMContentLoaded", async function () {
+
+			function focusBarcodeWithoutKeyboard() {
+				barcodeInput.setAttribute('readonly', true);
+				barcodeInput.focus();
+				setTimeout(() => {
+					barcodeInput.removeAttribute('readonly');
+				}, 100);
+			}
+
+			let validBarcodes = [];
+
+			initApp();
+
+			if (document.getElementById("inpCompany").value.length == 0) {
+				document.getElementById("inpCompany").focus();
+			} else if (document.getElementById("inpWarehouse").value.length == 0) {
+				document.getElementById("inpWarehouse").focus();
+			} else if (document.getElementById("inpName").value.length == 0) {
+				document.getElementById("inpName").focus();
+			} else if (document.getElementById("inpPONumber").value.length == 0) {
+				document.getElementById("inpPONumber").focus();
+			};
+
+			function showBarcodeMessage(message, isError = false) {
+				barcodeMessage.textContent = message;
+				barcodeMessage.style.color = isError ? "red" : "green";
+				if (isError == true) {
+					audioBarcodeFail.play();
+					navigator.vibrate(1000);
+				}
+
+			}
+
+			function refreshDate(){
+				thedate = new Date();
+				console.log("refreshDate-thedate:" + thedate);
+				fullDate = thedate.toISOString();
+				console.log("refreshDate-fullDate:" + fullDate);
+				QBDate = thedate.toLocaleDateString("en-AU");
+				console.log("QBDate-thedate:" + QBDate);
+				AusDate = thedate.toLocaleDateString("en-AU", {
+					timeZone: "Australia/Sydney"
+				}).replace(/\//g, "-") + ' ' + thedate.toLocaleTimeString("en-AU", {
+					timeZone: "Australia/Sydney"
+				});
+				console.log("refreshDate-AusDate:" + AusDate);
+			}
+
+
+			function showStatusMessage(message, isError = false) {
+				statusMessage.textContent = message;
+				statusMessage.style.color = isError ? "red" : "green";
+			}
+
+			function clearStatusMessage() {
+				statusMessage.textContent = "";
+			}
+
+			async function getUserIP() {
+				try {
+					const response = await fetch("https://api64.ipify.org?format=json");
+					const data = await response.json();
+					return data.ip;
+				} catch (error) {
+					showStatusMessage("Error fetching IP address:", true);
+					return null;
+				}
+			}
+			async function getConfig() {
+				try {
+					const response = await fetch(
+						configUrl
+					);
+					const data = await response.json();
+					return data.config;
+				} catch (error) {
+					showStatusMessage("Error fetching config:" + error, true);
+					return null;
+				}
+
+			}
+
+			async function isAllowedIP() {
+				const config = await getConfig();
+
+				if (!config || !config.settings.IPRestrictions) {
+					return true; 
+				}
+
+				const allowedIPs = config.settings.allowedIPs;
+				const userIP = await getUserIP();
+
+				if (allowedIPs.includes(userIP)) {
+					return true;
+				} else {
+					return false;
+				}
+			}
+
+			function showIPRestrictionMessage() {
+				document.getElementById("app").style.display = "none";
+				const errorMessage = document.createElement("div");
+				errorMessage.textContent =
+					"You do not have permission to access this page.";
+				errorMessage.style.color = "red";
+				document.body.appendChild(errorMessage);
+			}
+
+			function downloadDatabase() {
+				document.body.classList.add('busy');
+				showStatusMessage("Initialising database...", false);
+
+				indexedDB.deleteDatabase('Items');
+				let versionNumber = parseInt(localVersion, 10);
+				let gtinDatabase = indexedDB.open(databaseName, versionNumber);
+				gtinDatabase.onupgradeneeded = function () {
+					let db = gtinDatabase.result;
+					let store = db.createObjectStore('barcodeObjectStore', {
+						keyPath: 'key'
+					});
+					store.createIndex('barcodeIndex', 'key', {
+						unique: true
+					});
+				};
+				gtinDatabase.onsuccess = function () {
+					showStatusMessage("Clearing database...", false);
+					let db = gtinDatabase.result;
+					let tx = db.transaction('barcodeObjectStore', 'readwrite');
+					let store = tx.objectStore('barcodeObjectStore');
+					let clearRequest = store.clear();
+					clearRequest.onsuccess = function () {
+						console.log("Object store cleared");
+
+						fetch(databaseUrl)
+							.then(response => {
+								if (!response.ok) {
+									throw new Error('HTTP error ' + response.status); // This will cause the promise to reject and move to the .catch() block
+								}
+								return response.text();
+							})
+							.then(data => {
+								const rows = data.split('\n');
+								console.log("Rows:" + rows.length);
+								const CHUNK_SIZE = 5000;
+								let chunkStart = 1;
+
+								function processChunk() {
+									showStatusMessage("Loading database into memory..." + chunkStart + "/" + rows.length, false);
+									let txChunk = db.transaction('barcodeObjectStore', 'readwrite');
+									let storeChunk = txChunk.objectStore('barcodeObjectStore');
+
+									for (let i = chunkStart; i < chunkStart + CHUNK_SIZE && i < rows.length; i++) {
+										let [ignore, key, style, size, colour, name, loadDate, description] = rows[i].split(',');
+										if (key) {
+											key = key.trim();
+											style = style ? style.trim().replace(/\r$/, '') : '';
+											size = size ? size.trim().replace(/\r$/, '') : '';
+											colour = colour ? colour.trim().replace(/\r$/, '') : '';
+											name = name ? name.trim().replace(/\r$/, '') : '';
+											description = description ? description.trim().replace(/\r$/, '') : '';
+											console.log("style:" + style);
+
+											let record = {
+												key: key,
+												value: description,
+												name: name,
+												size: size,
+												colour: colour,
+												style: style
+											};
+											storeChunk.add(record);
+										}
+									}
+									chunkStart += CHUNK_SIZE;
+
+									txChunk.oncomplete = function () {
+										if (chunkStart < rows.length) {
+											processChunk(); 
+										} else {
+											console.log("All data processed.");
+											document.body.classList.remove('busy');
+											showStatusMessage("", false);
+											document.getElementById("inpCompany").focus();
+										}
+									};
+									txChunk.onerror = function (event) {
+										console.error("Error adding records to DB:", event.target.error ? event.target.error.message : "Unknown error");
+									};
+								}
+								processChunk(); 
+							})
+							.catch(error => {
+								console.error('Error fetching database:', error);
+								hideSpinner();
+								showStatusMessage('Error fetching database:' + error, true);
+								document.getElementById("inpCompany").focus();
+							});
+
+						console.log("done downloading DB");
+						document.getElementById("inpCompany").focus();
+					};
+
+					clearRequest.onerror = function (event) {
+						console.error("Error clearing object store:", event.target.error);
+					};
+				};
+			}
+			function clearLocalDatabase() {
+				localStorage.removeItem("validBarcodes");
+				localStorage.removeItem("datasetVersion");
+				validBarcodes = [];
+				showStatusMessage("Local barcodes database cleared.");
+			}
+			function generateCSVContent() {
+				refreshDate();
+				let csvContent = "Type, Company, Warehouse, Date, Operator, PO Number, Barcode, Description, Style, Colour, Size, Quantity\n";
+				let i = 0;
+				for (const barcode in barcodeCounts) {
+					csvContent += "Inbound," + document.getElementById("inpCompany").value + "," + document.getElementById("inpWarehouse").value + "," + AusDate + "," + document.getElementById("inpName").value + "," + document.getElementById("inpPONumber").value + "," + barcode + "," + barcodeDescriptions[i] + "," + barcodeStyles[i] + "," + barcodeColours[i] + "," + barcodeSizes[i] + "," + barcodeCounts[barcode] + "\n";
+					i++;
+				}
+				return csvContent;
+			}
+
+			async function sendEmail() {
+				clearStatusMessage();
+				const configResponse = await fetch(configUrl);
+				const configData = await configResponse.json();
+				const settings = configData.config.settings;
+				showStatusMessage("Sending eMail...", false);
+				let csvContent = generateCSVContent();
+				setDescriptions();
+				var emailSubject = scanDescription;
+				var csvBlob = new Blob([csvContent], {
+					type: "text/csv;charset=utf-8;",
+				});
+
+				var reader = new FileReader();
+				reader.readAsDataURL(csvBlob);
+				reader.onload = function () {
+					var attachment = reader.result.replace(/^data:.+;base64,/, "");
+					var data = {
+						sender: {
+							name: "Voyager Group Admin - SBS App",
+							email: settings.emailSender,
+						},
+						to: [{
+							email: "SM-VGR-SBS-ALERTS@voyagergroup.com.au",
+						},],
+						subject: emailSubject,
+						htmlContent: "<html><head></head><body><h3>Please find the attached CSV file containing the scanned barcodes.</h3></body></html>",
+						attachment: [{
+							name: fileName,
+							content: attachment,
+						},],
+					};
+					fetch("https://api.sendinblue.com/v3/smtp/email", {
+						method: "POST",
+						headers: {
+							Accept: "application/json",
+							"api-key": settings.emailServiceAPIKey,
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify(data),
+					})
+						.then(function (response) {
+							showStatusMessage("Email sent", false);
+							eMailMessage = 1
+
+						})
+						.catch(function (error) {
+							console.error("Error sending email: ", error);
+							showStatusMessage("Error sending email: " + error, true);
+						});
+
+				};
+			}
+			function downloadCSV() {
+				clearStatusMessage();
+				let csvContent = generateCSVContent();
+
+				let csvBlob = new Blob([csvContent], {
+					type: "text/csv;charset=utf-8;",
+				});
+
+				let csvUrl = URL.createObjectURL(csvBlob);
+				let link = document.createElement("a");
+
+				link.setAttribute("href", csvUrl);
+
+				setDescriptions();
+
+				link.setAttribute("download", fileName);
+				link.style.visibility = "hidden";
+				document.body.appendChild(link);
+				link.click();
+				document.body.removeChild(link);
+
+			}
+
+			function updateTable() {
+
+				const tableBody = document.getElementById("tableBody");
+				tableBody.innerHTML = "";
+
+				for (const barcode in barcodeCounts) {
+					const row = tableBody.insertRow(-1);
+					const cell1 = row.insertCell(0);
+					const cell2 = row.insertCell(1);
+					const cell3 = row.insertCell(2);
+					const cell4 = row.insertCell(3);
+
+					let index = barcodes.indexOf(barcode);
+					cell1.textContent = barcodeDescriptions[index];
+					cell2.textContent = barcode;
+					cell2.style.display = 'none';
+					cell3.textContent = barcodeCounts[barcode];
+
+					const undoButton = document.createElement("button");
+					undoButton.classList.add("btn", "btn-secondary", "btn-sm"); 
+					undoButton.type = "button";
+					const undoIcon = document.createElement("i");
+					undoIcon.classList.add("fas", "fa-undo"); 
+					undoButton.appendChild(undoIcon);
+
+					undoButton.addEventListener("click", function () {
+						deleteEntry(barcode);
+					});
+
+					cell4.appendChild(undoButton);
+				}
+				focusBarcodeWithoutKeyboard();
+			}
+
+			function disableUndoButtons() {
+				const undoButtons = document.querySelectorAll("#tableBody .btn-secondary");
+				undoButtons.forEach(button => {
+					button.disabled = true;
+				});
+			}
+
+			function updateTotalCount(addone) {
+				console.log("addone:" + addone);
+				console.log ("numberOfItems:" + numberOfItems);
+				if (addone) {
+					numberOfItems++;
+				} else {
+					numberOfItems--;
+				}
+				barcodeCounter.textContent = "Total Count: " + numberOfItems;
+			}
+
+			function clearTotalCount() {
+				numberOfItems = 0;
+				barcodeCounter.textContent = "Total Count: " + numberOfItems;
+			}
+
+
+			function deleteEntry(barcode) {
+				if (confirm("Are you sure you want to delete one count from this item?") == true) {
+
+					console.log("Deleting item");
+					if (barcode in barcodeCounts) {
+						barcodeCounts[barcode]--;
+						updateTotalCount(false); 
+
+						if (barcodeCounts[barcode] === 0) {
+							delete barcodeCounts[barcode];
+						}
+
+						updateTable();
+
+						console.log("Object.keys(barcodeCounts).length:" + Object.keys(barcodeCounts).length);
+						//if there's now no counts, hide the relevant buttons
+						if (Object.keys(barcodeCounts).length === 0) {//if there are no bloops yet, there's nothing to email or download so don; offer tose buttons
+							console.log ("Setting to hidden");
+							showBarcodeMessage("",false);
+							submitToQuickbase.style.visibility = "hidden";
+							downloadResults.style.visibility = "hidden";
+							sendResults.style.visibility = "hidden";
+						} else {
+							submitToQuickbase.style.visibility = "visible";
+							downloadResults.style.visibility = "visible";
+							sendResults.style.visibility = "visible";
+						}
+
+					} else {
+						console.log("Barcode not found in table.");
+					}
+				}
+				focusBarcodeWithoutKeyboard();
+			}
+
+
+			async function checkAndUpdateDatasetVersion() {
+				try {
+					const response = await fetch(configUrl);
+					if (!response.ok) {
+						throw new Error("Network response was not ok");
+					}
+					const configData = await response.json();
+					const remoteVersion = configData.config.databaseVersion;
+					let localVersion = 0;
+
+					if (typeof (Storage) !== "undefined") {
+						if (localStorage.getItem('datasetVersion') !== null) {
+							localVersion = localStorage.getItem("datasetVersion");
+						} else {
+							console.log('The item does not exist.');
+						}
+					} else {
+						// Sorry! No Web Storage support..
+					}
+					console.log("localVersion:" + localVersion);
+					console.log("remoteVersion:" + remoteVersion);
+					if (remoteVersion !== localStorage.getItem("datasetVersion")) {
+						showStatusMessage(
+							"Updating local database to version: " + remoteVersion
+						);
+						downloadDatabase();
+						localStorage.setItem("datasetVersion", remoteVersion);
+					} else {
+					}
+
+
+					datasetVersionDisplay.textContent =
+						"Dataset Version: " + remoteVersion;
+				} catch (error) {
+					showStatusMessage("Error fetching config: " + error, true);
+				}
+			};
+
+
+			const submitToQuickbase = document.getElementById("submitToQuickbase");
+			const xmlHttp = new XMLHttpRequest();
+			const xmlHttpL = new XMLHttpRequest();
+			const xmlHttpInboundHeader = new XMLHttpRequest();
+			const xmlHttpInboundLine = new XMLHttpRequest();
+
+			submitToQuickbase.addEventListener("click", async function () {
+				if (confirm("Are you sure? You won't be able to add to this scan.") == false) {
+					return;
+				}
+
+				statusMessage.textContent = "Submitting...";
+				statusMessage.style.color = "green"; // or any default color you want
+				showSpinner();
+				await new Promise(resolve => setTimeout(resolve, 2000)); // 5 seconds delay
+
+				const TheinpName = document.getElementById("inpName").value;
+
+				try {
+					setDescriptions();
+					const headerRecID = await QBHeads(scanShortDescription, TheinpName, "Inbound", fullDate);
+
+					if (headerRecID > 0) {
+						let i = 0;
+						let success = true;
+						let errorMessage = "";
+
+						for (const barcode in barcodeCounts) {
+							try {
+								console.log("Doing Lines");
+								await QBLines(TheinpName, "Inbound", fullDate, barcode, barcodeDescriptions[i], barcodeCounts[barcode], barcodeStyles[i], barcodeNames[i], barcodeColours[i], barcodeSizes[i], headerRecID);
+								let responseInbound = await QBInbound(barcode, barcodeDescriptions[i], barcodeCounts[barcode], barcodeStyles[i], barcodeNames[i], barcodeColours[i], barcodeSizes[i]);
+								i++;
+							} catch (e) {
+								success = false;
+								errorMessage = e.message;
+								break; // Exit the loop on the first error
+							}
+						}
+
+						if (success) {
+							statusMessage.textContent = "Data submitted successfully";
+							statusMessage.style.color = "green";
+							hideSpinner();
+						} else {
+							statusMessage.textContent = "Failed to submit line data: " + errorMessage;
+							statusMessage.style.color = "red";
+							hideSpinner();
+						}
+					}                       
+					
+
+					/*PONumber, User, Company, Warehouse, fullDate
+					const inboundHeaderRecID = await QBInboundHeads(document.getElementById("inpPONumber").value, TheinpName, document.getElementById("inpCompany").value, document.getElementById("inpWarehouse").value,fullDate);
+
+					if (inboundHeaderRecID > 0) {
+						let i = 0;
+						let success = true;
+						let errorMessage = "";
+
+						for (const barcode in barcodeCounts) {
+							try {
+								await QBInboundLines(barcode, barcodeDescriptions[i], barcodeCounts[barcode], barcodeItems[i], barcodeStyles[i], barcodeColours[i], barcodeSizes[i], document.getElementById("inpPONumber").value,inboundHeaderRecID);
+								i++;
+							} catch (e) {
+								success = false;
+								errorMessage = e.message;
+								break; // Exit the loop on the first error
+							}
+						}
+
+						if (success) {
+							statusMessage.textContent = "Data submitted successfully";
+							statusMessage.style.color = "green";
+							hideSpinner();
+						} else {
+							statusMessage.textContent = "Failed to submit line data: " + errorMessage;
+							statusMessage.style.color = "red";
+							hideSpinner();
+						}
+					} */
+				} catch (e) {
+					console.error(e);
+					statusMessage.textContent = "An error occurred.";
+					statusMessage.style.color = "red";
+					hideSpinner();
+				} finally {
+					await sendEmail();
+					restartScan.style.display = "none";
+					sendResults.style.display = "none";
+					submitToQuickbase.style.display = "none";
+					disableUndoButtons();
+					document.getElementById("newScan").focus();
+					showStatusMessage("Count submitted", false);
+					hideSpinner();
+				}
+			});
+
+			function setDescriptions() {
+				refreshDate();
+				let scanDesc = document.getElementById("inpCompany").value + "/" + document.getElementById("inpWarehouse").value + "-Inbound-" + document.getElementById("inpName").value + "-" + AusDate + "-" + document.getElementById("inpPONumber").value;
+				scanDescription = "SBS: " + scanDesc;
+				scanShortDescription = document.getElementById("inpCompany").value + "-" + document.getElementById("inpWarehouse").value + "-" + document.getElementById("inpPONumber").value;
+				scanDesc = document.getElementById("inpCompany").value + "-" + document.getElementById("inpWarehouse").value + "-Inbound-" + document.getElementById("inpName").value + "-" + AusDate.replace(/:/g, "-") + "-" + document.getElementById("inpPONumber").value;
+				fileName = "SBS-" + scanDesc + ".csv";
+				console.log(fileName);
+			};
+			
+			//================
+
+			function QBInbound(Barcode, BarcodeDetails, Count, Style, StyleDescription, Colour, Size) {
+				//barcode, barcodeDescriptions[i], barcodeCounts[barcode], barcodeItems[i], barcodeStyles[i], barcodeColours[i], barcodeSizes[i], document.getElementById("inpPONumber").value,inboundHeaderRecID);
+				//Barcode, BarcodeDetails, Count, Style, StyleDescription, Colour, Size, PONumber, inboundHeaderRecID
+
+				console.log(">>>>QBInbound - Started");
+
+				let headers = {
+					"QB-Realm-Hostname": "voyager.quickbase.com",
+					"Authorization": quickbaseSBSToken,
+					"Content-Type": "application/json"
+				};
+
+				// 6 = PO Number
+				// 7 = Date
+				// 8 = Company
+				// 9 = Warehouse
+				//10 = User
+				//11 = GTIN
+				//12 = Style
+				//13 = Colour
+				//14 = Size
+				//15 = Count
+
+				const inboundHeaderBody = {
+					to: quickbaseSBSInbound,
+					data: [{
+						"6": {
+							value: document.getElementById("inpPONumber").value
+						},
+						"7": {
+							value: fullDate
+						},
+						"8": {
+							value: document.getElementById("inpCompany").value
+						},
+						"9": {
+							value: document.getElementById("inpWarehouse").value
+						},
+						"10": {
+							value: document.getElementById("inpName").value
+						},
+						"11": {
+							value: Barcode
+						},
+						"12": {
+							value: Style
+						},
+						"13": {
+							value: Colour
+						},
+						"14": {
+							value: Size
+						},
+						"15": {
+							value: Count
+						}
+					},],
+					fieldsToReturn: [7, 9, 10, 8, 6],
+				};
+
+				console.log(">>>>QBInboundLines - payload:" + JSON.stringify(inboundHeaderBody));
+
+				xmlHttpInboundHeader.open("POST", "https://api.quickbase.com/v1/records", false);
+
+				for (const key in headers) {
+					xmlHttpInboundHeader.setRequestHeader(key, headers[key]);
+				}
+
+				xmlHttpInboundHeader.send(JSON.stringify(inboundHeaderBody));
+
+				if (xmlHttpInboundHeader.readyState === XMLHttpRequest.DONE) {
+					let hdrResponse = JSON.parse(xmlHttpInboundHeader.responseText);
+					let hdrResponseNJ = JSON.parse(xmlHttpInboundHeader.responseText);
+					let hdrRespRecs = hdrResponseNJ.metadata
+					let hdrRespRecsidS = hdrRespRecs.createdRecordIds;
+					return hdrRespRecsidS[0];
+				} else {
+					barcodeMessage.textContent = `Error: ${response.message || "Failed to connect to QB on Header"
+						}`;
+					barcodeMessage.style.color = "red";
+				}
+				barcodeMessage.style.display = "block";
+
+				};
+
+
+//================
+
+			function QBInboundHeads(PONumber, User, Company, Warehouse, fullDate) {
+
+				console.log("In Inbound hdr");
+
+				let headers = {
+					"QB-Realm-Hostname": "voyager.quickbase.com",
+					"Authorization": quickbaseSBSToken,
+					"Content-Type": "application/json"
+				};
+
+				// 8 = User
+				// 9 = Company
+				//10 = Warehouse
+				// 6 = PO Number
+				// 7 = Scan Date
+
+				const inboundHeaderBody = {
+					to: quickbaseSBSInboundHead,
+					data: [{
+						"7": {
+							value: fullDate
+						},
+						"9": {
+							value: Company
+						},
+						"10": {
+							value: Warehouse
+						},
+						"8": {
+							value: User
+						},
+						"6": {
+							value: PONumber
+						}
+					},],
+					fieldsToReturn: [7, 9, 10, 8, 6],
+				};
+
+				xmlHttpInboundHeader.open("POST", "https://api.quickbase.com/v1/records", false);
+
+				for (const key in headers) {
+					xmlHttpInboundHeader.setRequestHeader(key, headers[key]);
+				}
+
+				xmlHttpInboundHeader.send(JSON.stringify(inboundHeaderBody));
+
+				if (xmlHttpInboundHeader.readyState === XMLHttpRequest.DONE) {
+					let hdrResponse = JSON.parse(xmlHttpInboundHeader.responseText);
+					let hdrResponseNJ = JSON.parse(xmlHttpInboundHeader.responseText);
+					let hdrRespRecs = hdrResponseNJ.metadata
+					let hdrRespRecsidS = hdrRespRecs.createdRecordIds;
+					return hdrRespRecsidS[0];
+				} else {
+					barcodeMessage.textContent = `Error: ${response.message || "Failed to connect to QB on Header"
+						}`;
+					barcodeMessage.style.color = "red";
+				}
+				barcodeMessage.style.display = "block";
+
+				};
+
+				function QBInboundLines(Barcode, BarcodeDetails, Count, Style, StyleDescription, Colour, Size, PONumber, inboundHeaderRecID) {
+
+					console.log(">>>>QBInboundLines - Started");
+
+
+				// Style = 6
+				// Colour = 7
+				// Size = 8
+				// Description = 9
+				// Barcode = 10
+				// Count = 11
+				// Related ID = 12
+				// PONumber = 14
+
+
+
+				let headers = {
+					"QB-Realm-Hostname": "voyager.quickbase.com",
+					"Authorization": quickbaseSBSToken,
+					"Content-Type": "application/json"
+				};
+
+				let inboundLinesHeaderBody = {
+					to: quickbaseSBSInboundLine,
+					data: [{
+						"10": {
+							value: Barcode
+						},
+						"11": {
+							value: Count
+						},
+						"6": {
+							value: Style
+						},
+						"9": {
+							value: StyleDescription
+						},
+						"7": {
+							value: Colour
+						},
+						"8": {
+							value: Size
+						},
+						"12": {
+							value: inboundHeaderRecID
+						}
+					},],
+					fieldsToReturn: [8, 6, 7, 9, 10, 11, 12, 14],
+				};
+
+				console.log(">>>>QBInboundLines - payload:" + JSON.stringify(inboundLinesHeaderBody));
+
+				xmlHttpInboundLine.open("POST", "https://api.quickbase.com/v1/records", false);
+
+				for (const key in headers) {
+					xmlHttpInboundLine.setRequestHeader(key, headers[key]);
+				}
+				xmlHttpInboundLine.send(JSON.stringify(inboundLinesHeaderBody));
+				if (xmlHttpInboundLine.readyState === XMLHttpRequest.DONE) {
+					return 0;
+				} else {
+					return 999;
+				}
+				barcodeMessage.style.display = "block";
+
+			};
+
+			//===============
+
+			function QBHeads(HeaderDesc, User, ScanType, fullDate) {
+
+				console.log("In hdr");
+
+				let headers = {
+					"QB-Realm-Hostname": "voyager.quickbase.com",
+					//"User-Agent": "SBS\v202305",
+					"Authorization": quickbaseSBSToken,
+					"Content-Type": "application/json"
+				};
+
+				const HeaderBody = {
+					to: quickbaseSBSHead,
+					data: [{
+						"6": {
+							value: fullDate
+						},
+						"8": {
+							value: ScanType
+						},
+						"7": {
+							value: User
+						},
+						"16": {
+							value: HeaderDesc
+						}
+					},],
+					fieldsToReturn: [6, 8, 7, 16],
+				};
+
+				xmlHttp.open("POST", "https://api.quickbase.com/v1/records", false);
+
+				for (const key in headers) {
+					xmlHttp.setRequestHeader(key, headers[key]);
+				}
+				xmlHttp.send(JSON.stringify(HeaderBody));
+
+				if (xmlHttp.readyState === XMLHttpRequest.DONE) {
+					let hdrResponse = JSON.parse(xmlHttp.responseText);
+					let hdrResponseNJ = JSON.parse(xmlHttp.responseText);
+					let hdrRespRecs = hdrResponseNJ.metadata
+					let hdrRespRecsidS = hdrRespRecs.createdRecordIds;
+					return hdrRespRecsidS[0];
+				} else {
+					barcodeMessage.textContent = `Error: ${response.message || "Failed to connect to QB on Header"
+						}`;
+					barcodeMessage.style.color = "red";
+				}
+
+				barcodeMessage.style.display = "block";
+
+			};
+
+			function QBLines(User, ScanType, fullDate, Barcode, BarcodeDetails, Count, Style, StyleDescription, Colour, Size, HeaderRecID) {
+
+				console.log("Started QB Lines");
+
+				let headers = {
+					"QB-Realm-Hostname": "voyager.quickbase.com",
+					"Authorization": quickbaseSBSToken,
+					"Content-Type": "application/json"
+				};
+
+				let HeaderBody = {
+					to: quickbaseSBSLine,
+					data: [{
+						"6": {
+							value: fullDate
+						},
+						"8": {
+							value: ScanType
+						},
+						"7": {
+							value: User
+						},
+						"9": {
+							value: Barcode
+						},
+						"10": {
+							value: Count
+						},
+						"17": {
+							value: Style
+						},
+						"18": {
+							value: StyleDescription
+						},
+						"19": {
+							value: Colour
+						},
+						"20": {
+							value: Size
+						},
+						"15": {
+							value: HeaderRecID
+						}
+					},],
+					fieldsToReturn: [8, 6, 7, 9, 10, 17, 18, 19, 20, 15],
+				};
+
+				console.log(">>>>QBLines - payload:" + JSON.stringify(HeaderBody));
+
+				xmlHttp.open("POST", "https://api.quickbase.com/v1/records", false);
+
+				for (const key in headers) {
+					xmlHttp.setRequestHeader(key, headers[key]);
+				}
+
+				xmlHttp.send(JSON.stringify(HeaderBody));
+				if (xmlHttp.readyState === XMLHttpRequest.DONE) {
+					return 0;
+				} else {
+					return 999;
+				}
+				barcodeMessage.style.display = "block";
+
+			};
+
+
+			function csvJSON(csv) {
+				var lines = csv.split("\n");
+				var result = [];
+				var resultvar = [];
+				var headers = "8,6,7,9,10,17,18,19,20,15".split(",");
+
+				for (var i = 1; i < lines.length; i++) {
+					var obj = {};
+					var strVal = "value";
+					var currentline = lines[i].split(",");
+
+					for (var j = 0; j < headers.length; j++) {
+
+						if (j == 1) {
+							currentline[j] = fullDate;
+						};
+						var objval = {};
+						objval[strVal] = currentline[j];
+						obj[headers[j]] = objval;
+					}
+
+					result.push(obj);
+
+				}
+
+				return JSON.stringify(result); //JSON
+			}
+
+			async function initApp() {
+				console.log("InitApp");
+				barcodeCounts = {};
+				barcodes = [];
+				barcodeStyles = [];
+				barcodeColours = [];
+				barcodeSizes = [];
+				barcodeNames = [];
+				barcodeDescriptions = [];
+				clearTotalCount();
+				const config = await getConfig();
+				console.log("JSON.stringify(config):" + JSON.stringify(config));
+
+				if (!config) {
+					showStatusMessage("Unable to access config file" + config, true);
+				}
+				//get QB info
+
+				quickbaseSBSToken = config.settings.quickbaseSBSToken;
+				quickbaseSBSHead = config.settings.quickbaseSBSHead;
+				quickbaseSBSLine = config.settings.quickbaseSBSLine;
+			//	quickbaseSBSEoP = config.settings.quickbaseSBSEoP;
+
+				quickbaseSBSInboundHead = config.settings.quickbaseSBSInboundHead;
+				quickbaseSBSInboundLine = config.settings.quickbaseSBSInboundLine;
+				quickbaseSBSInbound = config.settings.quickbaseSBSInbound;
+
+				console.log("quickbaseSBSToken:" + quickbaseSBSToken);
+				console.log("quickbaseSBSHead:" + quickbaseSBSHead);
+				console.log("quickbaseSBSLine:" + quickbaseSBSLine);
+				console.log("quickbaseSBSInboundHead:" + quickbaseSBSInboundHead);
+				console.log("quickbaseSBSInboundLine:" + quickbaseSBSInboundLine);
+				console.log("quickbaseSBSInbound:" + quickbaseSBSInbound);
+
+
+				const storedBarcodes = localStorage.getItem("validBarcodes");
+				console.log("about to run downloadDatabase");
+
+				checkAndUpdateDatasetVersion();
+				window.barcodeCounts = {};
+			};
+
+
+			barcodeInput.addEventListener("keypress", function (e) {
+				if (e.key === 'Enter' && barcodeInput.value.length != 0) {
+					
+					e.preventDefault();
+
+					const barcode = barcodeInput.value.trim();
+
+					console.log("Input Barcode:" + barcode);
+					var barcodeDesc = "";
+					var isValid = false;
+
+					let versionNumber = parseInt(localVersion, 10);
+					let gtinDatabase = indexedDB.open(databaseName, versionNumber);
+
+					gtinDatabase.onsuccess = function () {
+						let db = gtinDatabase.result;
+						let transaction = db.transaction('barcodeObjectStore', 'readonly');
+						let store = transaction.objectStore('barcodeObjectStore');
+						let index = store.index('barcodeIndex');
+						let searchKey = barcode;
+
+						let request = index.get(searchKey);
+
+						request.onsuccess = function () {
+
+							if (request.result) {
+
+								let barcodeDesc = showBarcodeMessage(request.result.value);
+
+								if (barcodeCounts.hasOwnProperty(barcode)) {
+									audioBarcodeSuccess.play();
+									barcodeCounts[barcode]++;
+									updateTotalCount(true);
+
+								} else {
+									updateTotalCount(true);
+									audioBarcodeSuccess.play();
+									barcodeCounts[barcode] = 1;
+									barcodes.push(barcode);
+									let index = barcodes.indexOf(barcode);
+									//console.log("Index: " + index);
+									barcodeStyles[index] = request.result.style;
+									barcodeColours[index] = request.result.colour;
+									barcodeSizes[index] = request.result.size;
+									barcodeNames[index] = request.result.name;
+									barcodeDescriptions[index] = request.result.value;
+								}
+								updateTable();
+							} else {
+								showBarcodeMessage("Invalid barcode: " + barcode, true);
+							}
+
+						};
+
+						request.onerror = function (event) {
+							console.log('Error retrieving data', event.target.errorCode);
+						};
+
+					}
+					barcodeInput.value = "";
+
+				} else {
+				}
+			});
+
+
+			function checkInputs() {
+				if (document.getElementById("inpCompany").value.length != 0 && document.getElementById("inpWarehouse").value.length != 0 && document.getElementById("inpName").value.length != 0 && document.getElementById("inpPONumber").value.length != 0) {
+					console.log("All filled");
+					clBarCodeSection.style.display = "block";
+					clBarcodeDisplaySection.style.display = "block";
+					clHeaderSection.style.display = "none";
+					clCountDoneSection.style.display = "none";
+					focusBarcodeWithoutKeyboard();
+
+				} else {
+					if (document.getElementById("inpCompany").value.length == 0) {
+						document.getElementById("inpCompany").focus();
+					} else if (document.getElementById("inpWarehouse").value.length == 0) {
+						document.getElementById("inpWarehouse").focus();
+					} else if (document.getElementById("inpName").value.length == 0) {
+						document.getElementById("inpName").focus();
+					} else if (document.getElementById("inpPONumber").value.length == 0) {
+						document.getElementById("inpPONumber").focus();
+					}
+				}
+			};
+
+			inpCompany.addEventListener("keypress", function (e) {
+				if (e.key === 'Enter') {
+					audioBarcodeSuccess.play();
+					checkInputs();
+				};
+			});
+
+			inpWarehouse.addEventListener("keypress", function (e) {
+				if (e.key === 'Enter') {
+					audioBarcodeSuccess.play();
+					checkInputs();
+				};
+			});
+
+			inpName.addEventListener("keypress", function (e) {
+				if (e.key === 'Enter') {
+					audioBarcodeSuccess.play();
+					checkInputs();
+				};
+			});
+
+			inpPONumber.addEventListener("keypress", function (e) {
+				if (e.key === 'Enter') {
+					document.getElementById("inpPONumber").value = document.getElementById("inpPONumber").value.trim();
+					document.getElementById("inpPONumber").value = document.getElementById("inpPONumber").value.toUpperCase();
+					countDisplay.textContent = "PO Number: " + document.getElementById("inpPONumber").value
+					console.log("countDisplay.textContent:" + countDisplay.textContent);
+					audioBarcodeSuccess.play();
+					checkInputs();
+				};
+			});
+
+			const clBarCodeSection = document.getElementById("clBarCodeSection");
+			const clBarcodeDisplaySection = document.getElementById("clBarcodeDisplaySection");
+			const clHeaderSection = document.getElementById("clHeaderSection");
+			const clCountDoneSection = document.getElementById("clCountDoneSection");
+
+			newScan.addEventListener("click", function () {
+				if (confirm("Are you sure? This will delete all current data.") == true) {
+					clearStatusMessage();
+					barcodes = [];
+					barcodeCounts = {};
+					barcodeStyles = [];
+					barcodeColours = [];
+					barcodeSizes = [];
+					barcodeNames = [];
+					barcodeDescriptions = [];
+					clearTotalCount();
+					document.getElementById("countDisplay").textContent = "";
+					var tableContents = document.getElementById("tableBody");
+					tableContents.innerHTML = "";
+					clBarCodeSection.style.display = "none";
+					clBarcodeDisplaySection.style.display = "none";
+					clHeaderSection.style.display = "block";
+					clCountDoneSection.style.display = "none";
+					restartScan.style.visibility = "hidden";
+					sendResults.style.visibility = "hidden";
+					submitToQuickbase.style.display = "block";
+					document.getElementById("inpCompany").value = "";
+					document.getElementById("inpWarehouse").value = "";
+					document.getElementById("inpName").value = "";
+					document.getElementById("inpPONumber").value = "";
+					document.getElementById("inpCompany").focus();
+					barcodeMessage.textContent = "";
+					statusMessage.textContent = "";
+				};
+			});
+
+
+			const stopScan = document.getElementById("stopScan");
+			stopScan.addEventListener("click", function() {
+				console.log("barcode count:" + Object.keys(barcodeCounts).length);
+				clearStatusMessage();
+				restartScan.style.visibility = "visible";
+				clBarCodeSection.style.display = "none";
+				clBarcodeDisplaySection.style.display = "block";
+				clBarcodeDisplaySection.style.visibility = "visible";
+				clHeaderSection.style.display = "none";
+				clCountDoneSection.style.display = "block";
+				clCountDoneSection.style.visibility = "visible";
+				newScan.style.visibility = "visible";
+				if (Object.keys(barcodeCounts).length === 0) {//if there are no bloops yet, there's nothing to email or download so don't offer those buttons
+					console.log ("Setting to hidden");
+					submitToQuickbase.style.visibility = "hidden";
+					downloadResults.style.visibility = "hidden";
+					sendResults.style.visibility = "hidden";
+				} else {
+					submitToQuickbase.style.visibility = "visible";
+					downloadResults.style.visibility = "visible";
+					sendResults.style.visibility = "visible";
+				}
+			});
+
+			const restartScan = document.getElementById("restartScan");
+
+			restartScan.addEventListener("click", function () {
+				clearStatusMessage();
+				clBarCodeSection.style.display = "block";
+				clBarcodeDisplaySection.style.display = "block";
+				clBarCodeSection.style.visibility = "visible";
+				clBarcodeDisplaySection.style.visibility = "visible";
+				clHeaderSection.style.display = "none";
+				clCountDoneSection.style.display = "none";
+				focusBarcodeWithoutKeyboard();
+			});
+
+			const back2Index = document.getElementById("back2Index");
+
+			back2Index.addEventListener("click", function () {
+				if (confirm("Are you sure? You will lose everything you've done so far.") == true) {
+					window.location.href = 'index.html';
+				}
+			});
+
+			function showSpinner() {
+				console.log("Showing spinner...");
+				document.body.classList.add('busy');
+				
+			}
+
+			function hideSpinner() {
+				console.log("Hiding spinner...");
+				document.body.classList.remove('busy');
+			}
+
+			document
+				.getElementById("downloadResults")
+				.addEventListener("click", downloadCSV);
+
+			document
+				.getElementById("sendResults")
+				.addEventListener("click", sendEmail);
+
+			if (!(await isAllowedIP())) {
+				showIPRestrictionMessage();
+				return;
+			}
+		});
+	</script>
+</body>
+
+</html>
